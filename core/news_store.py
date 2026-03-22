@@ -1,0 +1,105 @@
+"""SQLite storage for scored news articles."""
+
+import json
+import logging
+import sqlite3
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+DB_PATH = Path(__file__).parent.parent / "data" / "news_log.db"
+
+logger = logging.getLogger(__name__)
+
+
+def _conn() -> sqlite3.Connection:
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db():
+    with _conn() as conn:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS scored_news (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                source TEXT NOT NULL,
+                source_tier INTEGER,
+                title TEXT NOT NULL,
+                url TEXT,
+                published_at DATETIME,
+                fetched_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                matched_keywords TEXT,
+                matched_groups TEXT,
+                score INTEGER NOT NULL,
+                category TEXT,
+                affected_tickers TEXT,
+                summary TEXT,
+                portfolio_impact TEXT,
+                suggested_action TEXT,
+                confidence TEXT,
+                alerted BOOLEAN DEFAULT 0,
+                included_in_brief BOOLEAN DEFAULT 0
+            );
+            CREATE INDEX IF NOT EXISTS idx_score ON scored_news(score);
+            CREATE INDEX IF NOT EXISTS idx_fetched ON scored_news(fetched_at);
+            CREATE INDEX IF NOT EXISTS idx_category ON scored_news(category);
+        """)
+
+
+def save_article(article: dict):
+    try:
+        with _conn() as conn:
+            conn.execute("""
+                INSERT INTO scored_news
+                  (source, source_tier, title, url, published_at,
+                   matched_keywords, matched_groups, score, category,
+                   affected_tickers, summary, portfolio_impact,
+                   suggested_action, confidence)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """, (
+                article.get("source"),
+                article.get("source_tier"),
+                article["title"],
+                article.get("url"),
+                article.get("published_at"),
+                json.dumps(article.get("matched_keywords", [])),
+                json.dumps(article.get("matched_groups", [])),
+                article["score"],
+                article.get("category"),
+                json.dumps(article.get("affected_tickers", [])),
+                article.get("summary"),
+                article.get("portfolio_impact"),
+                article.get("suggested_action"),
+                article.get("confidence"),
+            ))
+        logger.debug("saved: [%d] %s", article["score"], article["title"][:80])
+    except Exception as e:
+        logger.error("failed to save article '%s': %s", article.get("title", "?")[:60], e)
+
+
+def url_exists(url: str) -> bool:
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM scored_news WHERE url = ?", (url,)
+        ).fetchone()
+        return row is not None
+
+
+def mark_alerted(article_id: int):
+    with _conn() as conn:
+        conn.execute("UPDATE scored_news SET alerted=1 WHERE id=?", (article_id,))
+
+
+def get_recent(since_hours: int = 16, min_score: int = 5, limit: int = 10) -> list[dict]:
+    since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+    with _conn() as conn:
+        rows = conn.execute("""
+            SELECT * FROM scored_news
+            WHERE fetched_at >= ? AND score >= ?
+            ORDER BY score DESC, fetched_at DESC
+            LIMIT ?
+        """, (since.isoformat(), min_score, limit)).fetchall()
+    results = [dict(r) for r in rows]
+    logger.debug("get_recent(%dh, score>=%d) → %d articles", since_hours, min_score, len(results))
+    return results
