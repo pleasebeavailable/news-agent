@@ -1,0 +1,131 @@
+watchlist:
+  # ── AI Infra (46.8% of portfolio) ──
+  - ticker: NVDA
+    type: stock
+    exchange: NASDAQ
+    theme: AI Infra
+    shares: 105
+    cost: 96.63
+  - ticker: NBIS
+    type: stock
+    exchange: NASDAQ
+    theme: AI Infra
+    shares: 80
+    cost: 37.30
+  - ticker: AMZN
+    type: stock
+    exchange: NASDAQ
+    theme: AI Infra
+    shares: 52
+    cost: 230.64
+  - ticker: GOOG
+    type: stock
+    exchange: NASDAQ
+    theme: AI Infra
+    shares: 22
+    cost: 191.65
+  - ticker: GLW
+    type: stock
+    exchange: NYSE
+    theme: AI Infra
+    shares: 45
+    cost: 137.84
+  - ticker: MRVL
+    type: stock
+    exchange: NASDAQ
+    theme: AI Infra
+    shares: 63
+    cost: 82.68
+
+  # ── China/EM (11.0%) ──
+  - ticker: BABA
+    type: stock
+    exchange: NYSE
+    theme: China/EM
+    shares: 60
+    cost: 215.34
+  - ticker: "2689.HK"
+    type: stock
+    exchange: HKEX
+    theme: China/EM
+    shares: 4000
+    cost: 3.47
+
+  # ── Crypto (17.8%) ──
+  - ticker: BMNR
+    type: stock
+    exchange: NASDAQ
+    theme: Crypto
+    shares: 533
+    cost: 33.85
+  - ticker: HOOD
+    type: stock
+    exchange: NASDAQ
+    theme: Crypto
+    shares: 84
+    cost: 103.61
+  - ticker: ORBS
+    type: stock
+    exchange: OTC
+    theme: Crypto
+    shares: 964
+    cost: 2.80
+
+  # ── Brazil (8.4%) ──
+  - ticker: PBR
+    type: adr
+    exchange: NYSE
+    theme: Brazil
+    shares: 300
+    cost: 15.55
+  - ticker: VALE
+    type: adr
+    exchange: NYSE
+    theme: Brazil
+    shares: 200
+    cost: 15.58
+
+  # ── Vol/Options (6.1%) ──
+  - ticker: FLOW.AS
+    type: stock
+    exchange: AMS
+    theme: Vol/Options
+    shares: 200
+    cost: 16.22
+
+  # ── Satellites ──
+  - ticker: OPEN
+    type: stock
+    exchange: NASDAQ
+    theme: Satellite
+    shares: 137
+    cost: 3.36
+  - ticker: SKYX
+    type: stock
+    exchange: NASDAQ
+    theme: Satellite
+    shares: 450
+    cost: 1.25
+
+display:
+  currency: USD
+  telegram_format: markdown
+
+schedule:
+  news_poll_minutes: 60         # how often to fetch+score news
+  morning_brief:
+    time: "07:00"
+    timezone: "Europe/Zagreb"
+    days: [mon, tue, wed, thu, fri]
+  weekly_summary:
+    time: "07:00"
+    timezone: "Europe/Zagreb"
+    day: sat
+
+alerts:
+  news_score_immediate: 7
+  news_score_log: 5
+  news_score_drop: 4
+  premarket_mover_pct: 3.0
+  earnings_alert: immediate
+  earnings_others: morning

@@ -1,0 +1,23 @@
+# NemoClaw configuration
+# Phase 1 config — kept for reference. Active bot is Phase 2 (sandbox-based).
+# See README.md for current setup.
+
+agent:
+  name: "nemoclaw-macos"
+  workspace: "~/openclaw-agent/"
+  sandbox_policy: "~/openclaw-agent/sandbox-policy.yaml"
+
+inference:
+  # Phase 2 uses sandbox inference at inference.local/v1 (not this config)
+  # This block is Phase 1 legacy — nvidia cloud API
+  provider: nvidia-cloud
+  api_key: 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
+  endpoint: "https://integrate.api.nvidia.com/v1"
+  model: "meta/llama-3.1-70b-instruct"
+
+# Phase 2 interface is Telegram (not WhatsApp — couldn't set up WhatsApp)
+# Bot token and chat ID are in /sandbox/.openclaw-data/.env
+
+logging:
+  level: "info"
+  file: "~/openclaw-agent/nemoclaw.log"

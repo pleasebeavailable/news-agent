@@ -1,0 +1,5 @@
+yfinance
+feedparser
+pyyaml
+schedule
+requests

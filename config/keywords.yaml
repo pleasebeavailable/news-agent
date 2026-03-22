@@ -1,0 +1,280 @@
+keyword_groups:
+
+  # ━━━ TIER 1 — DIRECT PORTFOLIO HOLDINGS ━━━
+
+  portfolio_tickers:
+    weight: 2.5
+    terms:
+      - NVDA
+      - NVIDIA
+      - Nvidia
+      - NBIS
+      - Nebius
+      - GOOG
+      - Alphabet
+      - AMZN
+      - Amazon
+      - GLW
+      - Corning
+      - MRVL
+      - Marvell
+      - BABA
+      - Alibaba
+      - Nine Dragons Paper
+      - "2689"
+      - BMNR
+      - Bitmine
+      - HOOD
+      - Robinhood
+      - ORBS
+      - Eightco
+      - PBR
+      - Petrobras
+      - VALE
+      - Vale SA
+      - FLOW
+      - Flow Traders
+      - OPEN
+      - Opendoor
+      - SKYX
+
+  portfolio_adjacent:
+    weight: 2.0
+    terms:
+      - Blackwell
+      - Vera Rubin
+      - Jensen Huang
+      - GTC
+      - CUDA
+      - Groq LPX
+      - Nebius Meta deal
+      - neocloud
+      - CoreWeave
+      - MAVAN
+      - MAVAN staking
+      - Ethereum treasury
+      - Beast Industries
+      - Qwen
+      - Alibaba Cloud
+      - Taobao
+      - Tmall
+      - GlassWorks AI
+      - PRIZM TMT
+      - multicore fiber
+      - co-packaged optics
+      - Celestial AI
+      - optical DSP
+      - custom ASIC
+      - Robinhood prediction markets
+      - Kalshi
+      - OpenAI equity
+      - OpenAI valuation
+
+  # ━━━ TIER 2 — THEMATIC / SECTOR ━━━
+
+  ai_infrastructure:
+    weight: 1.8
+    terms:
+      - AI chip
+      - GPU
+      - data center
+      - hyperscaler capex
+      - AI infrastructure
+      - AI spending
+      - inference
+      - training cluster
+      - AI factory
+      - GPU cluster
+      - AI server
+      - AI accelerator
+      - TPU
+      - Trainium
+      - HBM
+      - CoWoS
+
+  semiconductors:
+    weight: 1.5
+    terms:
+      - chip
+      - semiconductor
+      - TSMC
+      - foundry
+      - wafer
+      - EUV
+      - ASML
+      - Broadcom
+      - AVGO
+      - export controls
+      - chip ban
+      - advanced packaging
+
+  fiber_optics_networking:
+    weight: 1.5
+    terms:
+      - fiber optic
+      - optical fiber
+      - OFC conference
+      - optical connectivity
+      - optical transceiver
+      - 800G
+      - 1.6T
+      - coherent optics
+      - data center interconnect
+      - DCI
+      - submarine cable
+
+  crypto_digital_assets:
+    weight: 1.5
+    terms:
+      - Ethereum
+      - ETH
+      - Bitcoin
+      - BTC
+      - crypto treasury
+      - staking
+      - staking yield
+      - Ethereum staking
+      - crypto regulation
+      - GENIUS Act
+      - stablecoin
+      - tokenization
+      - SEC crypto
+      - spot ETF
+      - crypto ETF
+      - DeFi
+
+  china_tech:
+    weight: 1.3
+    terms:
+      - China tech
+      - Chinese AI
+      - DeepSeek
+      - China cloud
+      - China stimulus
+      - China consumer
+      - China e-commerce
+      - JD.com
+      - Tencent
+      - Meituan
+      - Hang Seng
+      - HSCEI
+      - China regulatory
+      - China tech crackdown
+      - Jack Ma
+
+  brazil_commodities:
+    weight: 1.2
+    terms:
+      - Petrobras
+      - Brazil oil
+      - pre-salt
+      - iron ore
+      - Brazil macro
+      - Brazilian real
+      - BRL
+      - Lula
+      - Brazil export tax
+      - commodity prices
+      - oil prices
+      - Brent crude
+      - WTI
+      - OPEC
+      - Vale mining
+      - China iron ore demand
+
+  # ━━━ TIER 3 — MACRO & CROSS-CUTTING ━━━
+
+  geopolitics:
+    weight: 1.5
+    terms:
+      - US-China
+      - Trump Xi
+      - tariff
+      - sanctions
+      - trade war
+      - export ban
+      - chip ban
+      - Taiwan
+      - South China Sea
+      - decoupling
+      - CHIPS Act
+      - entity list
+      - Pentagon list
+      - delisting
+      - ADR risk
+      - Beijing summit
+
+  macro_rates:
+    weight: 1.0
+    terms:
+      - Fed rate
+      - FOMC
+      - Powell
+      - rate cut
+      - rate hike
+      - inflation
+      - CPI
+      - PPI
+      - PCE
+      - NFP
+      - nonfarm
+      - employment
+      - GDP
+      - recession
+      - yield curve
+      - treasury yield
+      - 10-year yield
+      - ECB
+      - Lagarde
+
+  market_regime:
+    weight: 1.0
+    terms:
+      - VIX
+      - volatility
+      - margin call
+      - S&P 500
+      - Nasdaq
+      - correction
+      - bear market
+      - risk-off
+      - flight to safety
+      - put/call ratio
+      - gamma exposure
+      - market breadth
+      - Magnificent Seven
+      - Mag7
+
+  earnings_catalysts:
+    weight: 1.3
+    terms:
+      - earnings
+      - quarterly results
+      - revenue miss
+      - revenue beat
+      - EPS
+      - guidance
+      - analyst upgrade
+      - analyst downgrade
+      - price target
+      - buyback
+      - share repurchase
+      - dividend
+      - investor day
+
+  # ━━━ TIER 4 — MARGIN & TAX ━━━
+
+  broker_tax:
+    weight: 0.8
+    terms:
+      - Interactive Brokers
+      - IBKR
+      - margin interest
+      - margin requirement
+      - FIFO
+      - tax-loss harvest
+      - capital gains tax
+      - withholding tax
+      - W-8BEN
+      - Croatian tax
+      - EU broker regulation

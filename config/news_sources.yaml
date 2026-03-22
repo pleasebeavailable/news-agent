@@ -1,0 +1,277 @@
+rss_feeds:
+  # Tier 1: Most reliable, free, fast
+  - name: Reuters Business
+    url: https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com+business&ceid=US:en&hl=en-US&gl=US
+    tier: 1
+  - name: CNBC Top News
+    url: https://www.cnbc.com/id/100003114/device/rss/rss.html
+    tier: 1
+  - name: CNBC World
+    url: https://www.cnbc.com/id/100727362/device/rss/rss.html
+    tier: 1
+  - name: MarketWatch Top Stories
+    url: https://feeds.content.dowjones.io/public/rss/mw_topstories
+    tier: 1
+  - name: MarketWatch Markets
+    url: https://feeds.content.dowjones.io/public/rss/mw_marketpulse
+    tier: 1
+  - name: Yahoo Finance
+    url: https://finance.yahoo.com/news/rssindex
+    tier: 1
+  - name: AP Business
+    url: https://news.google.com/rss/search?q=when:24h+allinurl:apnews.com+business&ceid=US:en&hl=en-US&gl=US
+    tier: 1
+  - name: BBC Business
+    url: http://feeds.bbci.co.uk/news/business/rss.xml
+    tier: 1
+
+  # Tier 1+: Paid subscription
+  - name: Seeking Alpha
+    url: https://seekingalpha.com/market_currents.xml
+    tier: 1
+    api: true
+    note: paid subscription — use API for deep research (Skill 6), RSS for monitoring (Skill 2)
+
+  # Tier 2: Good but verify claims
+  - name: Investing.com News
+    url: https://www.investing.com/rss/news.rss
+    tier: 2
+  - name: ZeroHedge
+    url: https://feeds.feedburner.com/zerohedge/feed
+    tier: 2
+    trust_flag: editorial
+
+  # Tier 3: Paywalled, headlines only
+  - name: FT Markets
+    url: https://www.ft.com/rss/home
+    tier: 3
+    note: may only get headlines
+  - name: Bloomberg
+    url: https://feeds.bloomberg.com/markets/news.rss
+    tier: 3
+    note: often restricted
+
+  # Geopolitics focused
+  - name: Al Jazeera English
+    url: https://www.aljazeera.com/xml/rss/all.xml
+    tier: 1
+  - name: CFR (Council on Foreign Relations)
+    url: https://www.cfr.org/rss.xml
+    tier: 1
+  - name: Reuters World
+    url: https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com+world&ceid=US:en&hl=en-US&gl=US
+    tier: 1
+
+x_fintwit:
+  method: rss_bridge
+  bridge_url: ""
+  poll_interval_minutes: 5
+  accounts:
+    # --- Breaking / Flow (original) ---
+    - handle: DeItaone
+      category: breaking
+    - handle: unusual_whales
+      category: flow
+    - handle: financialjuice
+      category: breaking
+    - handle: MacroAlf
+      category: macro
+    - handle: zaborarna
+      category: geopolitics
+    - handle: SemiAnalysis
+      category: semiconductors
+    - handle: chiikiiii
+      category: semiconductors
+    - handle: TruthGundlach
+      category: macro
+
+    # --- Inflationists ---
+    - handle: biancoresearch
+      category: macro_inflation
+      name: Jim Bianco
+    - handle: gave_lv
+      category: macro_inflation
+      name: Louis-Vincent Gave
+      note: posts infrequently; primary output is Gavekal newsletter
+    - handle: LynAldenContact
+      category: macro_inflation,dollar_bear
+      name: Lyn Alden
+    - handle: LukeGromen
+      category: macro_inflation,dollar_bear
+      name: Luke Gromen
+
+    # --- Deflationists / Disinflationists ---
+    - handle: EconguyRosie
+      category: macro_deflation
+      name: David Rosenberg
+    - handle: JeffSnider_AIP
+      category: macro_deflation
+      name: Jeff Snider
+      note: also runs Eurodollar University YouTube
+
+    # --- Dollar Bull ---
+    - handle: SantiagoAuFund
+      category: dollar_bull
+      name: Brent Johnson
+
+    # --- Liquidity / Flows ---
+    - handle: crossbordercap
+      category: liquidity
+      name: Michael Howell
+      note: also runs Capital Wars Substack
+    - handle: DariusDale42
+      category: liquidity
+      name: Darius Dale
+    - handle: 42Macro
+      category: liquidity
+      name: 42Macro (firm account)
+
+    # --- Legendary Traders ---
+    - handle: standuquesne
+      category: legendary
+      name: Stanley Druckenmiller
+      note: posts rarely but market-moving
+    - handle: RayDalio
+      category: legendary
+      name: Ray Dalio
+      note: mostly cross-posts from LinkedIn
+
+    # --- Oil & Energy ---
+    - handle: anasalhajji
+      category: energy
+      name: Anas Alhajji
+      note: extremely prolific, 218K+ posts
+    - handle: aaborman
+      category: energy
+      name: Art Berman
+      note: UNVERIFIED handle — confirm before relying on; also artberman.com
+    - handle: ericnuttall
+      category: energy
+      name: Eric Nuttall
+      note: Canadian E&P focused
+    - handle: goaborhring
+      category: energy
+      name: Leigh Goehring
+      note: UNVERIFIED handle — confirm before relying on; primary output is G&R quarterly letters
+
+    # --- Geopolitics (Tier 1: investment-grade) ---
+    - handle: PapicMarko
+      category: geopolitics
+      name: Marko Papic
+      note: constraints-based framework; best geopolitics/investing intersection
+    - handle: DrPippaM
+      category: geopolitics
+      name: Pippa Malmgren
+      note: former White House NEC; defense spending as QE thesis
+    - handle: George_Friedman
+      category: geopolitics
+      name: George Friedman
+      note: founder Geopolitical Futures & Stratfor; long-cycle structural analysis
+
+    # --- Geopolitics (Tier 3: niche/energy-geo) ---
+    - handle: BobMcNally_DC
+      category: geopolitics,energy
+      name: Bob McNally
+      note: former White House NSC energy advisor; oil market geopolitics
+
+    # --- Media / Podcast Hubs ---
+    - handle: MacroVoices
+      category: media
+      name: MacroVoices (Erik Townsend)
+    - handle: RealVision
+      category: media
+      name: Real Vision
+    - handle: TopTradersLive
+      category: media
+      name: Top Traders Unplugged
+
+# Research URLs — structured as {fetch_filter, sources[]}
+# Only sources with access: free are auto-fetched; others are reference-only
+research_urls:
+  fetch_filter: free
+
+  sources:
+    # --- Macro / Inflation / Deflation ---
+    - name: Hoisington Quarterly Review & Outlook
+      url: https://hoisington.com/economic_overview.html
+      author: Lacy Hunt
+      category: macro_deflation
+      access: free
+      format: pdf_quarterly
+      note: letters published ~2 weeks after quarter end
+
+    - name: Goehring & Rozencwajg Quarterly Commentary
+      url: https://www.gorozen.com/commentaries
+      author: Leigh Goehring & Adam Rozencwajg
+      category: energy,commodities
+      access: free
+      format: pdf_quarterly
+
+    - name: Goehring & Rozencwajg Blog
+      url: https://blog.gorozen.com/blog
+      author: Leigh Goehring & Adam Rozencwajg
+      category: energy,commodities
+      access: free
+      format: blog
+
+    - name: Art Berman Blog
+      url: https://www.artberman.com
+      author: Art Berman
+      category: energy
+      access: free
+      format: blog
+      note: detailed oil supply/demand charts
+
+    # --- Geopolitics ---
+    - name: Geopolitical Futures (George Friedman)
+      url: https://geopoliticalfutures.com
+      author: George Friedman
+      category: geopolitics
+      access: free
+      format: articles
+      note: some free weekly articles; full access paid
+
+    - name: Geopolitical Alpha (Marko Papic)
+      url: https://www.geopoliticalalpha.com
+      author: Marko Papic
+      category: geopolitics
+      access: free
+      format: articles
+      note: constraints-based framework; BCA Research institutional work is separate/paid
+
+    # --- Reference only (free_and_paid — not auto-fetched) ---
+    - name: Lyn Alden Research
+      url: https://www.lynalden.com
+      author: Lyn Alden
+      category: macro_inflation,dollar_bear
+      access: free_and_paid
+      format: articles
+
+    - name: Lyn Alden Substack
+      url: https://lynalden.substack.com
+      author: Lyn Alden
+      category: macro_inflation,dollar_bear
+      access: free_and_paid
+      format: substack
+
+    - name: Capital Wars (Michael Howell Substack)
+      url: https://substack.com/@capitalwars
+      author: Michael Howell
+      category: liquidity
+      access: free_and_paid
+      format: substack
+      note: 51K+ subscribers, ranked #4 Finance on Substack
+
+    - name: Energy Outlook Advisors (Anas Alhajji Substack)
+      url: https://anasalhajjieoa.substack.com
+      author: Anas Alhajji
+      category: energy
+      access: free_and_paid
+      format: substack
+
+    - name: 42 Macro Free Sample
+      url: https://42macro.com/42-macro-sample
+      author: Darius Dale
+      category: liquidity
+      access: free_sample
+      format: report
