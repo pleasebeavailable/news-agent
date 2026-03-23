@@ -14,7 +14,7 @@ def _token() -> str:
     return token
 
 
-def _chat_id() -> int:
+def chat_id() -> int:
     chat_id = os.environ.get("TELEGRAM_CHAT_ID")
     if not chat_id:
         raise RuntimeError("TELEGRAM_CHAT_ID env var not set")
@@ -25,7 +25,7 @@ def send(text: str, parse_mode: str = "Markdown") -> bool:
     """Send a message to the configured chat. Returns True on success."""
     url = f"https://api.telegram.org/bot{_token()}/sendMessage"
     payload = {
-        "chat_id": _chat_id(),
+        "chat_id": chat_id(),
         "text": text,
         "parse_mode": parse_mode,
         "disable_web_page_preview": True,
@@ -35,10 +35,10 @@ def send(text: str, parse_mode: str = "Markdown") -> bool:
         resp.raise_for_status()
         return True
     except requests.HTTPError as e:
-        logger.error(f"Telegram send failed: {e.response.status_code} {e.response.reason}")
+        logger.error("Telegram send failed: %s %s", e.response.status_code, e.response.reason)
         return False
     except Exception as e:
-        logger.error(f"Telegram send failed: {type(e).__name__}: {e}")
+        logger.error("Telegram send failed: %s: %s", type(e).__name__, e)
         return False
 
 
@@ -56,5 +56,5 @@ def get_updates(offset: int = 0) -> list[dict]:
         resp.raise_for_status()
         return resp.json().get("result", [])
     except Exception as e:
-        logger.error(f"getUpdates failed: {e}")
+        logger.error("getUpdates failed: %s", e)
         return []

@@ -18,7 +18,10 @@ for _env_path in ("/sandbox/workspace/.env", "/sandbox/.openclaw-data/.env"):
                 _line = _line.strip()
                 if _line and not _line.startswith("#") and "=" in _line:
                     _k, _v = _line.split("=", 1)
-                    os.environ.setdefault(_k.strip(), _v.strip())
+                    _v = _v.strip()
+                    if len(_v) >= 2 and _v[0] == _v[-1] and _v[0] in ("'", '"'):
+                        _v = _v[1:-1]
+                    os.environ.setdefault(_k.strip(), _v)
         break
 
 # Single-instance lock — prevents 409 conflicts from multiple bot processes
@@ -239,14 +242,17 @@ def poll_loop():
                 msg = update.get("message") or update.get("edited_message")
                 if not msg:
                     continue
+                if msg.get("chat", {}).get("id") != telegram_bot.chat_id():
+                    logger.warning("Ignoring message from unknown chat %s", msg.get("chat", {}).get("id"))
+                    continue
                 text = msg.get("text", "").strip()
                 if not text:
                     continue
-                logger.info(f"Received: {text!r}")
+                logger.info("Received: %r", text)
                 reply = handle_message(text)
                 telegram_bot.send(reply)
         except Exception as e:
-            logger.error(f"Poll loop error: {e}")
+            logger.error("Poll loop error: %s", e)
             time.sleep(5)
 
 
@@ -259,7 +265,7 @@ def run_scheduler():
 
     poll_minutes = config_loader.schedule_config().get("news_poll_minutes", 15)
     schedule.every(poll_minutes).minutes.do(run_news_cycle)
-    logger.info(f"News polling every {poll_minutes} min")
+    logger.info("News polling every %d min", poll_minutes)
     schedule.every(5).minutes.do(run_geo_scan)
     logger.info("Geo scan every 5 min")
     schedule.every().monday.at("07:00").do(send_morning_brief)

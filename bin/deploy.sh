@@ -34,11 +34,13 @@ printf "mkdir -p /sandbox/workspace/core /sandbox/workspace/skills /sandbox/work
 if [ ! -s /sandbox/.openclaw-data/.env ]; then\n\
   echo 'TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}' > /sandbox/.openclaw-data/.env\n\
   echo 'TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}' >> /sandbox/.openclaw-data/.env\n\
+  echo 'NVIDIA_API_KEY=${NVIDIA_API_KEY}' >> /sandbox/.openclaw-data/.env\n\
   echo 'no_proxy=127.0.0.1,localhost,::1' >> /sandbox/.openclaw-data/.env\n\
   echo 'NO_PROXY=127.0.0.1,localhost,::1' >> /sandbox/.openclaw-data/.env\n\
   echo '  .env written to persistent storage'\n\
 fi\n\
 ln -sf /sandbox/.openclaw-data/.env /sandbox/workspace/.env\n\
+grep -q NVIDIA_API_KEY /sandbox/.openclaw-data/.env 2>/dev/null || echo 'NVIDIA_API_KEY=${NVIDIA_API_KEY}' >> /sandbox/.openclaw-data/.env\n\
 exit\n" \
   | nemoclaw "$SANDBOX" connect 2>/dev/null || true
 
@@ -58,6 +60,7 @@ done
 
 # Config
 echo "[4/6] Config..."
+upload "config.yaml" "$REMOTE/"
 for f in config/portfolio.yaml config/theses.yaml \
           config/news_sources.yaml config/keywords.yaml; do
   [ -f "$f" ] && upload "$f" "$REMOTE/config/"

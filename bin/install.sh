@@ -107,19 +107,19 @@ fi
 if should_run 5; then
   echo "[5/9] Validating NVIDIA API key..."
 
-  get_api_key_from_config() {
-    local raw
-    raw=$(grep '^\s*api_key:' "$INSTALL_DIR/config.yaml" 2>/dev/null | head -1 | sed 's/.*api_key:\s*//' | sed 's/^["'"'"']//' | sed 's/["'"'"']$//' | tr -d '[:space:]')
-    if echo "$raw" | grep -q 'YOUR_'; then
-      echo ""
-    else
-      echo "$raw"
+  get_api_key_from_env() {
+    if [ -f "$INSTALL_DIR/.env" ]; then
+      grep '^NVIDIA_API_KEY=' "$INSTALL_DIR/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '[:space:]'
     fi
   }
 
-  write_api_key_to_config() {
+  write_api_key_to_env() {
     local key="$1"
-    sed -i '' "s|^\(\s*api_key:\s*\).*|\1${key}|" "$INSTALL_DIR/config.yaml"
+    if [ -f "$INSTALL_DIR/.env" ] && grep -q '^NVIDIA_API_KEY=' "$INSTALL_DIR/.env"; then
+      sed -i '' "s|^NVIDIA_API_KEY=.*|NVIDIA_API_KEY=${key}|" "$INSTALL_DIR/.env"
+    else
+      echo "NVIDIA_API_KEY=${key}" >> "$INSTALL_DIR/.env"
+    fi
   }
 
   test_api_key() {
@@ -132,7 +132,7 @@ if should_run 5; then
   }
 
   # Also check credentials file
-  NVIDIA_API_KEY=$(get_api_key_from_config)
+  NVIDIA_API_KEY=$(get_api_key_from_env)
   if [ -z "$NVIDIA_API_KEY" ] && [ -f "$CREDS_FILE" ]; then
     NVIDIA_API_KEY=$(python3 -c "import json; print(json.load(open('$CREDS_FILE')).get('nvidia_api_key',''))" 2>/dev/null || true)
   fi
@@ -140,7 +140,7 @@ if should_run 5; then
   # If we already have a valid key, skip prompting
   if [ -n "$NVIDIA_API_KEY" ] && test_api_key "$NVIDIA_API_KEY"; then
     skip "API key valid"
-    write_api_key_to_config "$NVIDIA_API_KEY"
+    write_api_key_to_env "$NVIDIA_API_KEY"
   else
     # Loop: prompt until we get a valid key
     MAX_ATTEMPTS=3
@@ -157,7 +157,7 @@ if should_run 5; then
       echo "  Testing API key..."
       if test_api_key "$NVIDIA_API_KEY"; then
         ok "API key is valid"
-        write_api_key_to_config "$NVIDIA_API_KEY"
+        write_api_key_to_env "$NVIDIA_API_KEY"
         break
       else
         ATTEMPT=$((ATTEMPT + 1))
