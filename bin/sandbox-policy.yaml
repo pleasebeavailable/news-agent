@@ -212,6 +212,9 @@ network_policies:
   rss_feeds:
     name: rss-feeds
     endpoints:
+    # Tier 1 financial
+    - host: feeds.content.dowjones.io
+      port: 443
     - host: feeds.marketwatch.com
       port: 443
     - host: www.cnbc.com
@@ -222,9 +225,35 @@ network_policies:
       port: 443
     - host: www.investing.com
       port: 443
-    - host: rsshub.app
-      port: 443
     - host: seekingalpha.com
+      port: 443
+    - host: news.google.com
+      port: 443
+    # Tier 3 / paywalled
+    - host: www.ft.com
+      port: 443
+    - host: feeds.bloomberg.com
+      port: 443
+    # Geopolitics
+    - host: www.aljazeera.com
+      port: 443
+    - host: www.theguardian.com
+      port: 443
+    # Research URLs (free)
+    - host: hoisington.com
+      port: 443
+    - host: www.gorozen.com
+      port: 443
+    - host: blog.gorozen.com
+      port: 443
+    - host: www.artberman.com
+      port: 443
+    - host: geopoliticalfutures.com
+      port: 443
+    - host: www.geopoliticalalpha.com
+      port: 443
+    # RSS bridge / aggregators
+    - host: rsshub.app
       port: 443
     binaries:
     - path: /sandbox/.venv/bin/python3
