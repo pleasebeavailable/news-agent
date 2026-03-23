@@ -34,9 +34,13 @@ def score_article(article: dict) -> dict | None:
     messages = [{"role": "user", "content": prompt}]
 
     try:
-        result = llm_client.json_chat(messages, temperature=0.1, max_tokens=512)
+        result = llm_client.json_chat(messages, temperature=0.1, max_tokens=1024)
     except Exception as e:
-        logger.error(f"Scoring failed for '{article['title']}': {e}")
+        logger.error("Scoring failed for '%s': %s", article['title'][:80], e)
+        return None
+
+    if not isinstance(result, dict):
+        logger.error("Scorer returned non-dict for '%s': %s", article['title'][:80], type(result).__name__)
         return None
 
     # Trust adjustment: editorial sources capped at 7
