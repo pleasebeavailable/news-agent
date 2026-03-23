@@ -34,8 +34,11 @@ def send(text: str, parse_mode: str = "Markdown") -> bool:
         resp = requests.post(url, json=payload, timeout=10)
         resp.raise_for_status()
         return True
+    except requests.HTTPError as e:
+        logger.error(f"Telegram send failed: {e.response.status_code} {e.response.reason}")
+        return False
     except Exception as e:
-        logger.error(f"Telegram send failed: {e}")
+        logger.error(f"Telegram send failed: {type(e).__name__}: {e}")
         return False
 
 

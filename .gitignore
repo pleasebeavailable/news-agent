@@ -3,4 +3,5 @@ __pycache__/
 .env
 data/
 *.log
+logs/
 PLAN.md

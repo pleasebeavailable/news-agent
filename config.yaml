@@ -11,7 +11,7 @@ inference:
   # Phase 2 uses sandbox inference at inference.local/v1 (not this config)
   # This block is Phase 1 legacy — nvidia cloud API
   provider: nvidia-cloud
-  api_key: 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
+  api_key: ${NVIDIA_API_KEY}  # set in .env — Phase 1 legacy, not used by Phase 2
   endpoint: "https://integrate.api.nvidia.com/v1"
   model: "meta/llama-3.1-70b-instruct"
 
