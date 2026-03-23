@@ -39,7 +39,7 @@ if [ ! -s /sandbox/.openclaw-data/.env ]; then\n\
   echo '  .env written to persistent storage'\n\
 fi\n\
 ln -sf /sandbox/.openclaw-data/.env /sandbox/workspace/.env\n\
-exit\n' \
+exit\n" \
   | nemoclaw "$SANDBOX" connect 2>/dev/null || true
 
 # Core modules

@@ -51,6 +51,10 @@ def send_morning_brief():
     logger.info("Generating morning brief...")
     try:
         brief = generate_brief()
+        if not brief or not brief.strip():
+            logger.error("Morning brief: LLM returned empty response, skipping send.")
+            telegram_bot.send("⚠️ Morning brief skipped: LLM returned an empty response.")
+            return
         telegram_bot.send(brief)
         logger.info("Morning brief sent.")
     except Exception as e:

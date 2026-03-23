@@ -34,7 +34,7 @@ def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int = 1024)
                 timeout=90,
             )
             resp.raise_for_status()
-            result = resp.json()["choices"][0]["message"]["content"]
+            result = resp.json()["choices"][0]["message"]["content"] or ""
             logger.info("LLM response — %.1fs, %d chars", time.time() - t0, len(result))
             return result
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
@@ -63,4 +63,8 @@ def json_chat(messages: list[dict], temperature: float = 0.1, max_tokens: int = 
     text = text.strip()
     if text.startswith("```"):
         text = text.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
-    return json.loads(text)
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        logger.error("JSON parse failed: %s | raw: %.200s", e, text)
+        raise

@@ -98,6 +98,9 @@ def handle_message(text: str) -> str:
         logger.info("routing: help")
         return (
             "*NemoClaw Phase 2 — Commands*\n\n"
+            "*Briefs*\n"
+            "`morning brief` — run morning brief now\n"
+            "`weekly summary` — run weekly summary now\n\n"
             "*Portfolio*\n"
             "`watchlist` — live prices for all positions\n"
             "`portfolio` — positions with themes & P&L\n"
@@ -123,6 +126,16 @@ def handle_message(text: str) -> str:
             "`reload` — reload config without restarting\n"
             "`help` — this message"
         )
+
+    # Brief commands
+    if tl in ("morning brief", "brief"):
+        logger.info("routing: morning brief on-demand")
+        threading.Thread(target=s["morning"].send_morning_brief, daemon=True).start()
+        return "Generating morning brief..."
+    if tl in ("weekly summary", "summary", "saturday brief"):
+        logger.info("routing: weekly summary on-demand")
+        threading.Thread(target=s["weekly"].send_weekly_summary, daemon=True).start()
+        return "Generating weekly summary..."
 
     # News commands
     if tl == "news":
@@ -193,15 +206,36 @@ def handle_message(text: str) -> str:
     return reply
 
 
+_OFFSET_FILE = "/sandbox/workspace/data/telegram_offset"
+
+
+def _load_offset() -> int:
+    try:
+        with open(_OFFSET_FILE) as f:
+            return int(f.read().strip())
+    except Exception:
+        return 0
+
+
+def _save_offset(offset: int) -> None:
+    try:
+        os.makedirs(os.path.dirname(_OFFSET_FILE), exist_ok=True)
+        with open(_OFFSET_FILE, "w") as f:
+            f.write(str(offset))
+    except Exception as e:
+        logger.warning("Could not save offset: %s", e)
+
+
 def poll_loop():
     """Long-poll Telegram for incoming messages."""
-    offset = 0
-    logger.info("Telegram poll loop started")
+    offset = _load_offset()
+    logger.info("Telegram poll loop started (offset=%d)", offset)
     while True:
         try:
             updates = telegram_bot.get_updates(offset=offset)
             for update in updates:
                 offset = update["update_id"] + 1
+                _save_offset(offset)
                 msg = update.get("message") or update.get("edited_message")
                 if not msg:
                     continue
