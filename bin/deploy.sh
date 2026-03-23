@@ -42,8 +42,9 @@ cat > "$SETUP_DIRS" << 'DIREOF'
 #!/bin/bash
 mkdir -p /sandbox/workspace/core /sandbox/workspace/skills /sandbox/workspace/config /sandbox/workspace/prompts /sandbox/workspace/data /sandbox/.openclaw-data
 DIREOF
+SETUP_DIRS_BASE=$(basename "$SETUP_DIRS")
 openshell sandbox upload "$SANDBOX" "$SETUP_DIRS" /tmp/
-echo "bash /tmp/$(basename "$SETUP_DIRS"); exit" | nemoclaw "$SANDBOX" connect 2>/dev/null || true
+echo "bash /tmp/${SETUP_DIRS_BASE}; rm -f /tmp/${SETUP_DIRS_BASE}; exit" | nemoclaw "$SANDBOX" connect 2>/dev/null || true
 rm -f "$SETUP_DIRS"
 
 upload "$SANDBOX_ENV" /sandbox/.openclaw-data/
@@ -90,7 +91,7 @@ upload "bin/log"          "/sandbox/"
 
 # Upload and run sandbox setup (venv, deps, start command, PATH)
 upload "bin/sandbox-setup.sh" /tmp/
-echo "bash /tmp/sandbox-setup.sh; exit" | nemoclaw "$SANDBOX" connect 2>/dev/null || true
+echo "bash /tmp/sandbox-setup.sh; rm -f /tmp/sandbox-setup.sh; exit" | nemoclaw "$SANDBOX" connect 2>/dev/null || true
 
 # Ensure network policy is applied (idempotent)
 echo ""

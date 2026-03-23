@@ -17,10 +17,15 @@ for _env_path in ("/sandbox/workspace/.env", "/sandbox/.openclaw-data/.env"):
             for _line in _f:
                 _line = _line.strip()
                 if _line and not _line.startswith("#") and "=" in _line:
+                    if _line.startswith("export "):
+                        _line = _line[7:]
                     _k, _v = _line.split("=", 1)
                     _v = _v.strip()
                     if len(_v) >= 2 and _v[0] == _v[-1] and _v[0] in ("'", '"'):
                         _v = _v[1:-1]
+                    else:
+                        # Strip inline comments for unquoted values
+                        _v = _v.split("#", 1)[0].strip()
                     os.environ.setdefault(_k.strip(), _v)
         break
 
@@ -56,6 +61,7 @@ _SYSTEM_PROMPT = (
 )
 _CHAT_HISTORY: list[dict] = []
 _CHAT_HISTORY_MAX = 20  # keep last 20 exchanges (~10 back-and-forth)
+_CHAT_LOCK = threading.Lock()
 
 # Import skills lazily to avoid startup errors if a dep is missing
 def _skills():
@@ -190,24 +196,26 @@ def handle_message(text: str) -> str:
     # Single ticker or comparison — must be last before free-form chat
     if m := re.match(r"(?i)(\w[\w.]+)\s+vs\s+(\w[\w.]+)", t):
         return s["stock"].compare(m.group(1).upper(), m.group(2).upper())
-    if re.match(r"^[A-Z0-9.]{1,6}$", t.upper()) and len(t.split()) == 1:
+    if re.match(r"^[A-Z0-9.]{1,10}$", t.upper()) and len(t.split()) == 1:
         result = s["stock"].get_quote_message(t.upper())
-        if not result.startswith("Could not fetch"):
+        if result is not None:
             return result
         # Not a valid ticker — fall through to free-form chat
 
     # Free-form chat fallback — stateful conversation with history
     logger.info("routing: free-form chat")
-    _CHAT_HISTORY.append({"role": "user", "content": t})
-    if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
-        del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
+    with _CHAT_LOCK:
+        _CHAT_HISTORY.append({"role": "user", "content": t})
+        if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
+            del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
+        messages = [{"role": "system", "content": _SYSTEM_PROMPT}] + list(_CHAT_HISTORY)
 
-    messages = [{"role": "system", "content": _SYSTEM_PROMPT}] + _CHAT_HISTORY
     reply = llm_client.chat(messages, temperature=0.7, max_tokens=2048)
 
-    _CHAT_HISTORY.append({"role": "assistant", "content": reply})
-    if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
-        del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
+    with _CHAT_LOCK:
+        _CHAT_HISTORY.append({"role": "assistant", "content": reply})
+        if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
+            del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
 
     return reply
 

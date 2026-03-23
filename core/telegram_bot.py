@@ -2,6 +2,8 @@
 
 import logging
 import os
+import time
+
 import requests
 
 logger = logging.getLogger(__name__)
@@ -52,7 +54,8 @@ def get_updates(offset: int = 0) -> list[dict]:
     try:
         resp = requests.get(url, params=params, timeout=35)
         if resp.status_code == 409:
-            import time
+            # Another instance still holds the connection — wait and retry
+            _poll_backoff = 0
             time.sleep(5)
             return []
         resp.raise_for_status()
@@ -61,6 +64,5 @@ def get_updates(offset: int = 0) -> list[dict]:
     except Exception as e:
         _poll_backoff = min(_poll_backoff + 5, 60)  # 5s, 10s, 15s ... 60s max
         logger.error("getUpdates failed (retry in %ds): %s", _poll_backoff, e)
-        import time
         time.sleep(_poll_backoff)
         return []

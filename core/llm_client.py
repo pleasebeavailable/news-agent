@@ -17,7 +17,8 @@ logger = logging.getLogger(__name__)
 
 
 def _headers() -> dict:
-    """Build request headers — includes API key if available."""
+    """Build request headers — includes API key as safety net outside gateway routing.
+    WARNING: Do not log the returned dict — it may contain the bearer token."""
     h = {"Content-Type": "application/json", "User-Agent": "NemoClaw/2.0"}
     api_key = os.environ.get("NVIDIA_API_KEY")
     if api_key:
@@ -49,10 +50,15 @@ def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int = 1024)
             result = data["choices"][0]["message"]["content"] or ""
             finish = data["choices"][0].get("finish_reason", "unknown")
             logger.info("LLM response — %.1fs, %d chars, finish=%s", time.time() - t0, len(result), finish)
-            if not result.strip() and attempt < MAX_RETRIES - 1:
-                logger.warning("LLM returned empty (attempt %d/%d), retrying", attempt + 1, MAX_RETRIES)
-                time.sleep(RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)])
-                continue
+            if finish == "length" and result.strip():
+                logger.warning("LLM response truncated (finish_reason=length, max_tokens=%d)", max_tokens)
+            if not result.strip():
+                if attempt < MAX_RETRIES - 1:
+                    logger.warning("LLM returned empty (attempt %d/%d, finish=%s), retrying",
+                                   attempt + 1, MAX_RETRIES, finish)
+                    time.sleep(RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)])
+                    continue
+                logger.error("LLM returned empty after all %d attempts (finish=%s)", MAX_RETRIES, finish)
             return result
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
             last_error = e
