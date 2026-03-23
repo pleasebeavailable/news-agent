@@ -13,9 +13,12 @@ def run_news_cycle():
     try:
         articles = news_fetcher.fetch_all() + news_fetcher.fetch_research_urls()
         if not articles:
+            logger.info("News cycle: no new articles from any feed")
             return
+        logger.info("News cycle: %d raw articles fetched", len(articles))
 
         scored = news_scorer.score_batch(articles)
+        logger.info("News cycle: %d articles scored ≥5", len(scored))
         alerts_cfg = config_loader.alerts_config()
         immediate_threshold = alerts_cfg.get("news_score_immediate", 7)
 
@@ -53,6 +56,7 @@ def _format_alert(article: dict) -> str:
 def get_recent_news(min_score: int = 5, limit: int = 5) -> str:
     articles = news_store.get_recent(since_hours=24, min_score=min_score, limit=limit)
     if not articles:
+        logger.info("get_recent_news: no articles found (24h, score>=%d)", min_score)
         return "No scored news in the last 24 hours."
 
     lines = [f"📰 *Recent News* (last 24h, score ≥{min_score})", "━━━━━━━━━━━━━━━━━━━"]
@@ -77,6 +81,7 @@ def get_news_by_topic(topic: str) -> str:
         or topic_lower in (a.get("category") or "").lower()
     ]
     if not matches:
+        logger.info("get_news_by_topic(%s): no matches found", topic)
         return f"No recent news found for '{topic}'."
 
     lines = [f"📰 *News: {topic}*", "━━━━━━━━━━━━━━━━━━━"]
