@@ -34,7 +34,7 @@ def get_quote_message(ticker: str) -> str:
     logger.info("price request — single ticker: %s", ticker)
     q = stock_data.get_quote(ticker)
     if not q.get("price"):
-        return f"Could not fetch data for {ticker}."
+        return None
 
     theses = config_loader.theses()
     thesis = theses.get(ticker, {})
