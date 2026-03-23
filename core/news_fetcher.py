@@ -189,12 +189,20 @@ def fetch_research_urls() -> list[dict]:
     return articles
 
 
-def fetch_all() -> list[dict]:
-    """Fetch all RSS feeds, deduplicate, keyword-filter. Returns raw articles."""
+_GEO_SOURCES = {"Al Jazeera English", "CFR (Council on Foreign Relations)", "Reuters World"}
+
+
+def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
+    """Fetch RSS feeds, deduplicate, keyword-filter. Returns raw articles.
+
+    If *source_filter* is given, only feeds whose name is in the set are fetched.
+    """
     articles = []
     seen_titles: list[str] = []
 
     for feed_cfg in _sources()["rss_feeds"]:
+        if source_filter and feed_cfg["name"] not in source_filter:
+            continue
         try:
             parsed = feedparser.parse(feed_cfg["url"])
         except Exception as e:
@@ -222,7 +230,9 @@ def fetch_all() -> list[dict]:
             combined = f"{title} {summary}"
             matched_terms, matched_groups = _match_keywords(combined)
             if not matched_groups:
-                continue
+                if feed_cfg["name"] not in _GEO_SOURCES:
+                    continue
+                matched_groups = ["geopolitics"]
 
             seen_titles.append(title)
             feed_new += 1

@@ -277,8 +277,9 @@ def run_scheduler():
     poll_minutes = config_loader.schedule_config().get("news_poll_minutes", 15)
     schedule.every(poll_minutes).minutes.do(run_news_cycle)
     logger.info("News polling every %d min", poll_minutes)
-    schedule.every(5).minutes.do(run_geo_scan)
-    logger.info("Geo scan every 5 min")
+    geo_minutes = config_loader.schedule_config().get("geo_poll_minutes", 20)
+    schedule.every(geo_minutes).minutes.do(run_geo_scan)
+    logger.info("Geo scan every %d min", geo_minutes)
     schedule.every().monday.at("07:00").do(send_morning_brief)
     schedule.every().tuesday.at("07:00").do(send_morning_brief)
     schedule.every().wednesday.at("07:00").do(send_morning_brief)
@@ -306,6 +307,11 @@ if __name__ == "__main__":
 
     scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
+
+    # Run first news cycle immediately so DB is populated before user queries
+    from skills.news_monitor import run_news_cycle
+    threading.Thread(target=run_news_cycle, daemon=True, name="startup-news").start()
+    logger.info("Startup news cycle triggered")
 
     if telegram_bot.send("NemoClaw Phase 2 online. Send `watchlist` to test."):
         logger.info("Startup message sent to Telegram")

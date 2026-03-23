@@ -1,8 +1,8 @@
-"""Skill 7: Geopolitical News Monitor — 30-min scheduled scan + on-demand."""
+"""Skill 7: Geopolitical News Monitor — scheduled scan + on-demand."""
 
 import logging
 from datetime import datetime, timezone
-from core import news_store, llm_client, telegram_bot
+from core import news_store, news_fetcher, news_scorer, llm_client, telegram_bot
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ def get_geo_brief() -> str:
     """On-demand: return a geopolitical brief from recent scored news."""
     articles = _get_recent_geo_news(since_hours=48, min_score=4)
     if not articles:
+        logger.info("get_geo_brief: no geo articles found (48h, score>=4)")
         return "No significant geopolitical news in the last 48h matching your portfolio exposures."
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -57,9 +58,27 @@ def get_geo_brief() -> str:
     return llm_client.chat([{"role": "user", "content": prompt}], temperature=0.4, max_tokens=2048)
 
 
+def _fetch_geo_articles() -> int:
+    """Fetch only geo RSS feeds, score, and store. Returns count of new articles."""
+    try:
+        raw = news_fetcher.fetch_all(source_filter=news_fetcher._GEO_SOURCES)
+        if not raw:
+            return 0
+        scored = news_scorer.score_batch(raw)
+        for article in scored:
+            news_store.save_article(article)
+        logger.info("Geo fetch: %d raw → %d scored (≥5)", len(raw), len(scored))
+        return len(scored)
+    except Exception as e:
+        logger.error("Geo fetch failed: %s", e)
+        return 0
+
+
 def run_geo_scan() -> None:
-    """Scheduled: scan for new high-impact geo news and alert if found."""
-    articles = _get_recent_geo_news(since_hours=1, min_score=7)
+    """Scheduled: fetch geo feeds, score, store, then alert on high-impact items."""
+    _fetch_geo_articles()
+
+    articles = _get_recent_geo_news(since_hours=2, min_score=7)
     alerted = [a for a in articles if not a.get("alerted")]
 
     for article in alerted:
@@ -73,7 +92,7 @@ def run_geo_scan() -> None:
         )
         telegram_bot.send(msg)
         news_store.mark_alerted(article["id"])
-        logger.info(f"Geo alert sent: {article['title']}")
+        logger.info("Geo alert sent: %s", article['title'])
 
     if not alerted:
-        logger.debug("Geo scan: no new high-impact geo news")
+        logger.info("Geo scan: no new high-impact geo news")
