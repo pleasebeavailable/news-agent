@@ -18,7 +18,11 @@ set -a
 source /sandbox/.openclaw-data/.env 2>/dev/null || source /sandbox/workspace/.env 2>/dev/null
 set +a
 
-nohup python3 /sandbox/workspace/main.py >> "$SESSION_LOG" 2>&1 &
+# Use venv Python — must match network policy binaries
+PYTHON="/sandbox/.venv/bin/python3"
+[ -x "$PYTHON" ] || PYTHON="python3"
+
+nohup "$PYTHON" /sandbox/workspace/main.py >> "$SESSION_LOG" 2>&1 &
 NEW_PID=$!
 disown $NEW_PID
 

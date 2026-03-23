@@ -42,19 +42,25 @@ def send(text: str, parse_mode: str = "Markdown") -> bool:
         return False
 
 
+_poll_backoff = 0  # seconds — resets on success, grows on failure
+
 def get_updates(offset: int = 0) -> list[dict]:
     """Poll for new messages. Pass offset = last_update_id + 1 to ack."""
+    global _poll_backoff
     url = f"https://api.telegram.org/bot{_token()}/getUpdates"
     params = {"offset": offset, "timeout": 30, "limit": 10}
     try:
         resp = requests.get(url, params=params, timeout=35)
         if resp.status_code == 409:
-            # Another instance still holds the connection — wait silently and retry
             import time
             time.sleep(5)
             return []
         resp.raise_for_status()
+        _poll_backoff = 0  # reset on success
         return resp.json().get("result", [])
     except Exception as e:
-        logger.error("getUpdates failed: %s", e)
+        _poll_backoff = min(_poll_backoff + 5, 60)  # 5s, 10s, 15s ... 60s max
+        logger.error("getUpdates failed (retry in %ds): %s", _poll_backoff, e)
+        import time
+        time.sleep(_poll_backoff)
         return []
