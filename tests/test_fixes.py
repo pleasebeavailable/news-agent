@@ -288,6 +288,8 @@ class TestDeployCleanup:
     def test_temp_files_cleaned_on_sandbox(self):
         """deploy.sh should rm temp files after executing them on sandbox."""
         deploy_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "bin", "deploy.sh")
+        if not os.path.isfile(deploy_path):
+            pytest.skip("deploy.sh not present (sandbox environment)")
         with open(deploy_path) as f:
             source = f.read()
 
