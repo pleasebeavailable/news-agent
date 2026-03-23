@@ -189,7 +189,9 @@ def fetch_research_urls() -> list[dict]:
     return articles
 
 
-_GEO_SOURCES = {"Al Jazeera English", "CFR (Council on Foreign Relations)", "Reuters World"}
+GEO_SOURCES = {"Al Jazeera English", "BBC World", "Guardian World"}
+
+_MAX_GEO_BYPASS = 15  # max articles per geo source that bypass keyword filter
 
 
 def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
@@ -210,6 +212,8 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
             continue
 
         feed_new = 0
+        geo_bypass_count = 0
+        is_geo = feed_cfg["name"] in GEO_SOURCES
         for entry in parsed.entries:
             title = getattr(entry, "title", "").strip()
             url = getattr(entry, "link", "")
@@ -230,9 +234,10 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
             combined = f"{title} {summary}"
             matched_terms, matched_groups = _match_keywords(combined)
             if not matched_groups:
-                if feed_cfg["name"] not in _GEO_SOURCES:
+                if not is_geo or geo_bypass_count >= _MAX_GEO_BYPASS:
                     continue
                 matched_groups = ["geopolitics"]
+                geo_bypass_count += 1
 
             seen_titles.append(title)
             feed_new += 1

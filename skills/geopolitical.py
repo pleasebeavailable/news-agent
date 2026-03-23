@@ -25,7 +25,7 @@ _PORTFOLIO_GEO_CONTEXT = (
 
 def _get_recent_geo_news(since_hours: int = 30, min_score: int = 5) -> list[dict]:
     articles = news_store.get_recent(since_hours=since_hours, min_score=min_score, limit=30)
-    return [a for a in articles if (a.get("category") or "") in _GEO_CATEGORIES]
+    return [a for a in articles if (a.get("category") or "").lower() in _GEO_CATEGORIES]
 
 
 def get_geo_brief() -> str:
@@ -61,7 +61,7 @@ def get_geo_brief() -> str:
 def _fetch_geo_articles() -> int:
     """Fetch only geo RSS feeds, score, and store. Returns count of new articles."""
     try:
-        raw = news_fetcher.fetch_all(source_filter=news_fetcher._GEO_SOURCES)
+        raw = news_fetcher.fetch_all(source_filter=news_fetcher.GEO_SOURCES)
         if not raw:
             return 0
         scored = news_scorer.score_batch(raw)
@@ -82,6 +82,8 @@ def run_geo_scan() -> None:
     alerted = [a for a in articles if not a.get("alerted")]
 
     for article in alerted:
+        if not news_store.try_mark_alerted(article["id"]):
+            continue  # another thread already sent this alert
         msg = (
             f"🌍 *Geo Alert* (Score: {article['score']}/10)\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
@@ -91,7 +93,6 @@ def run_geo_scan() -> None:
             f"*Consider:* {article.get('suggested_action', 'N/A')}"
         )
         telegram_bot.send(msg)
-        news_store.mark_alerted(article["id"])
         logger.info("Geo alert sent: %s", article['title'])
 
     if not alerted:
