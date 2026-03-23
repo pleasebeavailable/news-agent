@@ -59,7 +59,7 @@ def research_ticker(ticker: str) -> str:
     )
 
     messages = [{"role": "user", "content": prompt}]
-    return llm_client.chat(messages, temperature=0.5, max_tokens=1000)
+    return llm_client.chat(messages, temperature=0.5, max_tokens=4096)
 
 
 def deep_dive(ticker: str) -> str:
@@ -95,4 +95,4 @@ def topic_context(topic: str) -> str:
         f"Keep it under 200 words."
     )
     messages = [{"role": "user", "content": prompt}]
-    return llm_client.chat(messages, temperature=0.4, max_tokens=400)
+    return llm_client.chat(messages, temperature=0.4, max_tokens=2048)

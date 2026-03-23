@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Usage: log [-f] [N]
+#   log        — all lines
+#   log 50     — last 50 lines
+#   log -f     — follow
+#   log -f 50  — last 50 lines + follow
+#   log 50 -f  — same
+
+LOGFILE="/tmp/nemoclaw.log"
+FOLLOW=false
+LINES=""
+
+for arg in "$@"; do
+  case "$arg" in
+    -f) FOLLOW=true ;;
+    *)  LINES="$arg" ;;
+  esac
+done
+
+if $FOLLOW && [ -n "$LINES" ]; then
+  tail -f -n "$LINES" "$LOGFILE"
+elif $FOLLOW; then
+  tail -f "$LOGFILE"
+elif [ -n "$LINES" ]; then
+  tail -n "$LINES" "$LOGFILE"
+else
+  cat "$LOGFILE"
+fi

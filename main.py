@@ -187,11 +187,14 @@ def handle_message(text: str) -> str:
         logger.info("routing: topic_context → %s", m.group(1))
         return s["research"].topic_context(m.group(1))
 
-    # Single ticker or comparison — must be last
+    # Single ticker or comparison — must be last before free-form chat
     if m := re.match(r"(?i)(\w[\w.]+)\s+vs\s+(\w[\w.]+)", t):
         return s["stock"].compare(m.group(1).upper(), m.group(2).upper())
-    if re.match(r"^[A-Z0-9.]{1,10}$", t.upper()) and len(t.split()) == 1:
-        return s["stock"].get_quote_message(t.upper())
+    if re.match(r"^[A-Z0-9.]{1,6}$", t.upper()) and len(t.split()) == 1:
+        result = s["stock"].get_quote_message(t.upper())
+        if not result.startswith("Could not fetch"):
+            return result
+        # Not a valid ticker — fall through to free-form chat
 
     # Free-form chat fallback — stateful conversation with history
     logger.info("routing: free-form chat")
@@ -200,7 +203,7 @@ def handle_message(text: str) -> str:
         del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
 
     messages = [{"role": "system", "content": _SYSTEM_PROMPT}] + _CHAT_HISTORY
-    reply = llm_client.chat(messages, temperature=0.7, max_tokens=600)
+    reply = llm_client.chat(messages, temperature=0.7, max_tokens=2048)
 
     _CHAT_HISTORY.append({"role": "assistant", "content": reply})
     if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
@@ -296,5 +299,8 @@ if __name__ == "__main__":
     scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
 
-    telegram_bot.send("NemoClaw Phase 2 online. Send `watchlist` to test.")
+    if telegram_bot.send("NemoClaw Phase 2 online. Send `watchlist` to test."):
+        logger.info("Startup message sent to Telegram")
+    else:
+        logger.warning("Could not send startup message — Telegram may not be reachable yet")
     poll_loop()

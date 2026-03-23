@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import time
 
 import requests
@@ -15,6 +16,15 @@ RETRY_BACKOFF = [5, 15, 30]  # seconds between retries
 logger = logging.getLogger(__name__)
 
 
+def _headers() -> dict:
+    """Build request headers — includes API key if available."""
+    h = {"Content-Type": "application/json", "User-Agent": "NemoClaw/2.0"}
+    api_key = os.environ.get("NVIDIA_API_KEY")
+    if api_key:
+        h["Authorization"] = f"Bearer {api_key}"
+    return h
+
+
 def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int = 1024) -> str:
     """Send a chat completion request with retry. Returns the assistant message text."""
     logger.info("LLM call — %d messages, max_tokens=%d", len(messages), max_tokens)
@@ -25,6 +35,7 @@ def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int = 1024)
             t0 = time.time()
             resp = requests.post(
                 f"{ENDPOINT}/chat/completions",
+                headers=_headers(),
                 json={
                     "model": MODEL,
                     "messages": messages,
@@ -34,8 +45,14 @@ def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int = 1024)
                 timeout=90,
             )
             resp.raise_for_status()
-            result = resp.json()["choices"][0]["message"]["content"] or ""
-            logger.info("LLM response — %.1fs, %d chars", time.time() - t0, len(result))
+            data = resp.json()
+            result = data["choices"][0]["message"]["content"] or ""
+            finish = data["choices"][0].get("finish_reason", "unknown")
+            logger.info("LLM response — %.1fs, %d chars, finish=%s", time.time() - t0, len(result), finish)
+            if not result.strip() and attempt < MAX_RETRIES - 1:
+                logger.warning("LLM returned empty (attempt %d/%d), retrying", attempt + 1, MAX_RETRIES)
+                time.sleep(RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)])
+                continue
             return result
         except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
             last_error = e
