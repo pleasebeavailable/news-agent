@@ -40,19 +40,26 @@ def generate_brief() -> str:
         template = f.read()
 
     data = assemble_data()
-    prompt = template.replace("{assembled_data_json}", json.dumps(data, default=str))
+    data_json = json.dumps(data, default=str)
+    prompt = template.replace("{assembled_data_json}", data_json)
     prompt = prompt.replace("{date}", data["date"])
 
+    logger.info("Brief prompt: %d chars, news=%d, movers=%d",
+                len(prompt), len(data.get("news", [])), len(data.get("movers", [])))
     messages = [{"role": "user", "content": prompt}]
-    return llm_client.chat(messages, temperature=0.4, max_tokens=800)
+    return llm_client.chat(messages, temperature=0.4, max_tokens=4096)
 
 
 def send_morning_brief():
     logger.info("Generating morning brief...")
     try:
         brief = generate_brief()
+        if not brief or not brief.strip():
+            logger.error("Morning brief: LLM returned empty response, skipping send.")
+            telegram_bot.send("⚠️ Morning brief skipped: LLM returned an empty response.")
+            return
         telegram_bot.send(brief)
         logger.info("Morning brief sent.")
     except Exception as e:
-        logger.error(f"Morning brief failed: {e}")
-        telegram_bot.send(f"⚠️ Morning brief failed: {e}")
+        logger.error("Morning brief failed: %s", e)
+        telegram_bot.send("⚠️ Morning brief failed: %s" % e)

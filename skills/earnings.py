@@ -31,6 +31,8 @@ def get_upcoming_earnings(days_ahead: int = 30) -> list[dict]:
                 earnings_date = earnings_date[0]
             if hasattr(earnings_date, "to_pydatetime"):
                 earnings_date = earnings_date.to_pydatetime()
+            if not isinstance(earnings_date, datetime):
+                earnings_date = datetime(earnings_date.year, earnings_date.month, earnings_date.day)
             days_until = (earnings_date - now).days
             if 0 <= days_until <= days_ahead:
                 results.append({

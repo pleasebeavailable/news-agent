@@ -17,8 +17,16 @@ for _env_path in ("/sandbox/workspace/.env", "/sandbox/.openclaw-data/.env"):
             for _line in _f:
                 _line = _line.strip()
                 if _line and not _line.startswith("#") and "=" in _line:
+                    if _line.startswith("export "):
+                        _line = _line[7:]
                     _k, _v = _line.split("=", 1)
-                    os.environ.setdefault(_k.strip(), _v.strip())
+                    _v = _v.strip()
+                    if len(_v) >= 2 and _v[0] == _v[-1] and _v[0] in ("'", '"'):
+                        _v = _v[1:-1]
+                    else:
+                        # Strip inline comments for unquoted values
+                        _v = _v.split("#", 1)[0].strip()
+                    os.environ.setdefault(_k.strip(), _v)
         break
 
 # Single-instance lock — prevents 409 conflicts from multiple bot processes
@@ -53,6 +61,7 @@ _SYSTEM_PROMPT = (
 )
 _CHAT_HISTORY: list[dict] = []
 _CHAT_HISTORY_MAX = 20  # keep last 20 exchanges (~10 back-and-forth)
+_CHAT_LOCK = threading.Lock()
 
 # Import skills lazily to avoid startup errors if a dep is missing
 def _skills():
@@ -98,6 +107,9 @@ def handle_message(text: str) -> str:
         logger.info("routing: help")
         return (
             "*NemoClaw Phase 2 — Commands*\n\n"
+            "*Briefs*\n"
+            "`morning brief` — run morning brief now\n"
+            "`weekly summary` — run weekly summary now\n\n"
             "*Portfolio*\n"
             "`watchlist` — live prices for all positions\n"
             "`portfolio` — positions with themes & P&L\n"
@@ -123,6 +135,16 @@ def handle_message(text: str) -> str:
             "`reload` — reload config without restarting\n"
             "`help` — this message"
         )
+
+    # Brief commands
+    if tl in ("morning brief", "brief"):
+        logger.info("routing: morning brief on-demand")
+        threading.Thread(target=s["morning"].send_morning_brief, daemon=True).start()
+        return "Generating morning brief..."
+    if tl in ("weekly summary", "summary", "saturday brief"):
+        logger.info("routing: weekly summary on-demand")
+        threading.Thread(target=s["weekly"].send_weekly_summary, daemon=True).start()
+        return "Generating weekly summary..."
 
     # News commands
     if tl == "news":
@@ -171,48 +193,77 @@ def handle_message(text: str) -> str:
         logger.info("routing: topic_context → %s", m.group(1))
         return s["research"].topic_context(m.group(1))
 
-    # Single ticker or comparison — must be last
+    # Single ticker or comparison — must be last before free-form chat
     if m := re.match(r"(?i)(\w[\w.]+)\s+vs\s+(\w[\w.]+)", t):
         return s["stock"].compare(m.group(1).upper(), m.group(2).upper())
     if re.match(r"^[A-Z0-9.]{1,10}$", t.upper()) and len(t.split()) == 1:
-        return s["stock"].get_quote_message(t.upper())
+        result = s["stock"].get_quote_message(t.upper())
+        if result is not None:
+            return result
+        # Not a valid ticker — fall through to free-form chat
 
     # Free-form chat fallback — stateful conversation with history
     logger.info("routing: free-form chat")
-    _CHAT_HISTORY.append({"role": "user", "content": t})
-    if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
-        del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
+    with _CHAT_LOCK:
+        _CHAT_HISTORY.append({"role": "user", "content": t})
+        if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
+            del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
+        messages = [{"role": "system", "content": _SYSTEM_PROMPT}] + list(_CHAT_HISTORY)
 
-    messages = [{"role": "system", "content": _SYSTEM_PROMPT}] + _CHAT_HISTORY
-    reply = llm_client.chat(messages, temperature=0.7, max_tokens=600)
+    reply = llm_client.chat(messages, temperature=0.7, max_tokens=2048)
 
-    _CHAT_HISTORY.append({"role": "assistant", "content": reply})
-    if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
-        del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
+    with _CHAT_LOCK:
+        _CHAT_HISTORY.append({"role": "assistant", "content": reply})
+        if len(_CHAT_HISTORY) > _CHAT_HISTORY_MAX:
+            del _CHAT_HISTORY[:-_CHAT_HISTORY_MAX]
 
     return reply
 
 
+_OFFSET_FILE = "/sandbox/workspace/data/telegram_offset"
+
+
+def _load_offset() -> int:
+    try:
+        with open(_OFFSET_FILE) as f:
+            return int(f.read().strip())
+    except Exception:
+        return 0
+
+
+def _save_offset(offset: int) -> None:
+    try:
+        os.makedirs(os.path.dirname(_OFFSET_FILE), exist_ok=True)
+        with open(_OFFSET_FILE, "w") as f:
+            f.write(str(offset))
+    except Exception as e:
+        logger.warning("Could not save offset: %s", e)
+
+
 def poll_loop():
     """Long-poll Telegram for incoming messages."""
-    offset = 0
-    logger.info("Telegram poll loop started")
+    offset = _load_offset()
+    logger.info("Telegram poll loop started (offset=%d)", offset)
     while True:
         try:
             updates = telegram_bot.get_updates(offset=offset)
             for update in updates:
                 offset = update["update_id"] + 1
+                _save_offset(offset)
                 msg = update.get("message") or update.get("edited_message")
                 if not msg:
+                    continue
+                if msg.get("chat", {}).get("id") != telegram_bot.chat_id():
+                    logger.warning("Ignoring message from unknown chat %s", msg.get("chat", {}).get("id"))
                     continue
                 text = msg.get("text", "").strip()
                 if not text:
                     continue
-                logger.info(f"Received: {text!r}")
+                logger.info("Received: %r", text)
                 reply = handle_message(text)
                 telegram_bot.send(reply)
         except Exception as e:
-            logger.error(f"Poll loop error: {e}")
+            logger.error("Poll loop error: %s", e)
             time.sleep(5)
 
 
@@ -225,7 +276,7 @@ def run_scheduler():
 
     poll_minutes = config_loader.schedule_config().get("news_poll_minutes", 15)
     schedule.every(poll_minutes).minutes.do(run_news_cycle)
-    logger.info(f"News polling every {poll_minutes} min")
+    logger.info("News polling every %d min", poll_minutes)
     schedule.every(5).minutes.do(run_geo_scan)
     logger.info("Geo scan every 5 min")
     schedule.every().monday.at("07:00").do(send_morning_brief)
@@ -256,5 +307,8 @@ if __name__ == "__main__":
     scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
 
-    telegram_bot.send("NemoClaw Phase 2 online. Send `watchlist` to test.")
+    if telegram_bot.send("NemoClaw Phase 2 online. Send `watchlist` to test."):
+        logger.info("Startup message sent to Telegram")
+    else:
+        logger.warning("Could not send startup message — Telegram may not be reachable yet")
     poll_loop()

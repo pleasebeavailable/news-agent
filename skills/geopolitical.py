@@ -54,7 +54,7 @@ def get_geo_brief() -> str:
         f"End with: *Biggest geo risk right now:* one sentence.\n"
         f"Keep under 300 words. Skip regions with no news."
     )
-    return llm_client.chat([{"role": "user", "content": prompt}], temperature=0.4, max_tokens=500)
+    return llm_client.chat([{"role": "user", "content": prompt}], temperature=0.4, max_tokens=2048)
 
 
 def run_geo_scan() -> None:
