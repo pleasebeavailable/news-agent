@@ -21,7 +21,7 @@ def _article_date(a: dict) -> str:
 def assemble_data() -> dict:
     wl = config_loader.watchlist()
     alerts_cfg = config_loader.alerts_config()
-    raw_news = news_store.get_recent(since_hours=16, min_score=5, limit=10)
+    raw_news = news_store.get_recent(since_hours=16, min_score=6, limit=10)
     # Stamp each article with its date so LLM knows article age
     dated_news = [{**a, "title": f"[{_article_date(a)}] {a.get('title', '')}"} for a in raw_news]
     return {
@@ -62,4 +62,4 @@ def send_morning_brief():
         logger.info("Morning brief sent.")
     except Exception as e:
         logger.error("Morning brief failed: %s", e)
-        telegram_bot.send("⚠️ Morning brief failed: %s" % e)
+        telegram_bot.send(f"⚠️ Morning brief failed: {e}")
