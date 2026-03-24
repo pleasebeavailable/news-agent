@@ -55,12 +55,15 @@ rss_feeds:
   - name: Al Jazeera English
     url: https://www.aljazeera.com/xml/rss/all.xml
     tier: 1
-  - name: CFR (Council on Foreign Relations)
-    url: https://www.cfr.org/rss.xml
+    geo: true
+  - name: BBC World
+    url: https://feeds.bbci.co.uk/news/world/rss.xml
     tier: 1
-  - name: Reuters World
-    url: https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com+world&ceid=US:en&hl=en-US&gl=US
+    geo: true
+  - name: Guardian World
+    url: https://www.theguardian.com/world/rss
     tier: 1
+    geo: true
 
 x_fintwit:
   method: rss_bridge

@@ -113,6 +113,7 @@ display:
 
 schedule:
   news_poll_minutes: 60         # how often to fetch+score news
+  geo_poll_minutes: 20          # how often to fetch+score geo feeds independently
   morning_brief:
     time: "07:00"
     timezone: "Europe/Zagreb"
