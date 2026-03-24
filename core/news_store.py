@@ -13,13 +13,15 @@ logger = logging.getLogger(__name__)
 
 def _conn() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=10)
     conn.row_factory = sqlite3.Row
+    conn.execute("PRAGMA busy_timeout=5000")
     return conn
 
 
 def init_db():
     with _conn() as conn:
+        conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript("""
             CREATE TABLE IF NOT EXISTS scored_news (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,6 +46,7 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_score ON scored_news(score);
             CREATE INDEX IF NOT EXISTS idx_fetched ON scored_news(fetched_at);
             CREATE INDEX IF NOT EXISTS idx_category ON scored_news(category);
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_url ON scored_news(url) WHERE url IS NOT NULL;
         """)
 
 
@@ -51,7 +54,7 @@ def save_article(article: dict):
     try:
         with _conn() as conn:
             conn.execute("""
-                INSERT INTO scored_news
+                INSERT OR IGNORE INTO scored_news
                   (source, source_tier, title, url, published_at,
                    matched_keywords, matched_groups, score, category,
                    affected_tickers, summary, portfolio_impact,
@@ -89,6 +92,16 @@ def url_exists(url: str) -> bool:
 def mark_alerted(article_id: int):
     with _conn() as conn:
         conn.execute("UPDATE scored_news SET alerted=1 WHERE id=?", (article_id,))
+
+
+def try_mark_alerted(article_id: int) -> bool:
+    """Atomically mark an article as alerted. Returns True if this call did the update (i.e. it wasn't already alerted)."""
+    with _conn() as conn:
+        cur = conn.execute(
+            "UPDATE scored_news SET alerted=1 WHERE id=? AND alerted=0",
+            (article_id,),
+        )
+        return cur.rowcount > 0
 
 
 def get_recent(since_hours: int = 16, min_score: int = 5, limit: int = 10) -> list[dict]:
