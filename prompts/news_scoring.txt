@@ -48,7 +48,7 @@ TRUST ADJUSTMENT:
 - Tier 3 sources: treat headlines cautiously if full text unavailable
 
 RESPOND IN THIS EXACT JSON FORMAT:
-{
+{{
   "score": <int 1-10>,
   "category": "<ai_infra|semiconductors|crypto|china|brazil|geopolitics|macro|earnings|market_move|fiber_optics|other>",
   "affected_tickers": ["<ticker>", ...],
@@ -57,4 +57,4 @@ RESPOND IN THIS EXACT JSON FORMAT:
   "suggested_action": "<1 sentence: what to consider doing, referencing actual positions, or 'No action needed'>",
   "kill_switch_triggered": <true|false>,
   "confidence": "<high|medium|low>"
-}
+}}
