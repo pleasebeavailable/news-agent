@@ -20,4 +20,5 @@ inference:
 
 logging:
   level: "info"
-  file: "~/openclaw-agent/nemoclaw.log"
+  file: "/tmp/nemoclaw.log"
+  retention_days: 30  # rotated daily, older files auto-deleted
