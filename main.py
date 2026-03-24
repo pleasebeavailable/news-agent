@@ -2,6 +2,7 @@
 
 import fcntl
 import logging
+import logging.handlers
 import os
 import sys
 import threading
@@ -45,10 +46,16 @@ except BlockingIOError:
 
 from core import telegram_bot, config_loader, news_store, llm_client
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(name)s — %(message)s",
+_LOG_FILE = os.environ.get("NEMOCLAW_LOG_FILE", "/tmp/nemoclaw.log")
+_LOG_RETENTION_DAYS = int(os.environ.get("NEMOCLAW_LOG_RETENTION_DAYS", "30"))
+_LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s — %(message)s"
+
+_file_handler = logging.handlers.TimedRotatingFileHandler(
+    _LOG_FILE, when="midnight", backupCount=_LOG_RETENTION_DAYS, utc=True,
 )
+_file_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+
+logging.basicConfig(level=logging.INFO, format=_LOG_FORMAT, handlers=[_file_handler])
 logger = logging.getLogger(__name__)
 logger.info("Lock acquired (PID=%d)", os.getpid())
 
