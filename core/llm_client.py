@@ -50,10 +50,11 @@ def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int = 1024)
                     timeout=90,
                 )
                 resp.raise_for_status()
+                elapsed = time.time() - t0
             data = resp.json()
             result = data["choices"][0]["message"]["content"] or ""
             finish = data["choices"][0].get("finish_reason", "unknown")
-            logger.info("LLM response — %.1fs, %d chars, finish=%s", time.time() - t0, len(result), finish)
+            logger.info("LLM response — %.1fs, %d chars, finish=%s", elapsed, len(result), finish)
             if finish == "length" and result.strip():
                 logger.warning("LLM response truncated (finish_reason=length, max_tokens=%d)", max_tokens)
             if not result.strip():
