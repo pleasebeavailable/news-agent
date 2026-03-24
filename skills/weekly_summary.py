@@ -48,7 +48,7 @@ def assemble_data() -> dict:
         "performance": [_weekly_perf(t) for t in tickers],
         "benchmark": _weekly_perf("^GSPC"),
         "macro_events": news_store.get_recent(since_hours=hours_since_monday, min_score=6, limit=10),
-        "portfolio_news": news_store.get_recent(since_hours=hours_since_monday, min_score=5, limit=15),
+        "portfolio_news": news_store.get_recent(since_hours=hours_since_monday, min_score=5, limit=20),
         "next_week_earnings": get_upcoming_earnings(days_ahead=7),
         "date_range": f"{week_start} – {week_end}",
     }

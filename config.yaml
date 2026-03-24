@@ -20,4 +20,3 @@ inference:
 
 logging:
   level: "info"
-  file: "~/openclaw-agent/nemoclaw.log"

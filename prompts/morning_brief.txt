@@ -25,6 +25,7 @@ One-line sentiment read.
 • [Score X] Headline — 1 sentence impact on specific holdings
 • [Score X] Headline — 1 sentence impact
 (Top 3-5 stories only, highest score first. Always name affected tickers.)
+(Only include score 7+ items as individual bullets. Mention lower-scored items in a single "Also: X, Y, Z" line if relevant.)
 
 📅 *Today's Events*
 • Earnings: {tickers}
@@ -41,6 +42,8 @@ One-line sentiment read.
 
 RULES:
 - Under 300 words, no fluff
+- Each news bullet is ONE sentence — headline + portfolio impact, nothing more
+- Never summarize what happened — only state what it means for holdings
 - Always name specific tickers when discussing impact (not "your AI stocks" — say "NVDA, NBIS, GLW")
 - Reference kill switches if any are close to triggering
 - If nothing notable, say "Quiet morning. No action needed."
