@@ -1,6 +1,6 @@
 # NemoClaw — Portfolio Intelligence Bot
 
-Telegram bot running inside an OpenShell sandbox (`rich-biatch`) on Nemotron-3-super-120b-a12b.
+Telegram bot running inside an OpenShell sandbox (`<sandbox-name>`) on Nemotron-3-super-120b-a12b.
 Monitors news, prices, earnings, and runs on-demand research for a personal portfolio.
 Any message that isn't a command gets a free-form LLM response with rolling conversation context.
 
@@ -11,7 +11,7 @@ Any message that isn't a command gets a free-form LLM response with rolling conv
 The bot runs persistently via `nohup` — **SSH disconnects do not stop it**.
 
 ```bash
-nemoclaw rich-biatch connect     # reconnect to sandbox
+nemoclaw <sandbox-name> connect     # reconnect to sandbox
 tail -f /tmp/nemoclaw.log        # watch live logs
 start                            # (re)start bot
 kill $(cat /tmp/nemoclaw.lock)   # stop bot
@@ -60,9 +60,9 @@ openshell gateway select    # should show nemoclaw as active
 nemoclaw onboard
 ```
 
-- When prompted for sandbox name, enter: `rich-biatch`
+- When prompted for sandbox name, enter: `<sandbox-name>`
 - Choose **Nemotron 3 Super 120B** when prompted for model
-- If step 6 fails with "sandbox not found": run `openshell sandbox create --name rich-biatch`, then `bash ~/openclaw-agent/bin/install.sh --from-step 7`
+- If step 6 fails with "sandbox not found": run `openshell sandbox create --name <sandbox-name>`, then `bash ~/openclaw-agent/bin/install.sh --from-step 7`
 - Let it fully complete — do not Ctrl+C
 
 > **WARNING:** `nemoclaw onboard` always does a FULL reset — it destroys the existing
@@ -126,7 +126,7 @@ This automatically:
 ### 6. Start the bot
 
 ```bash
-nemoclaw rich-biatch connect
+nemoclaw <sandbox-name> connect
 start
 tail -f /tmp/nemoclaw.log
 ```
@@ -209,7 +209,7 @@ Background scheduler (30s tick):
 
 | Component | Value |
 |---|---|
-| Sandbox | rich-biatch |
+| Sandbox | <sandbox-name> |
 | Workspace | /sandbox/workspace/ |
 | Model | nvidia/nemotron-3-super-120b-a12b |
 | Inference URL | https://inference.local/v1 (virtual — routed by OpenShell gateway) |
@@ -272,7 +272,7 @@ in `bin/sandbox-policy.yaml`.
 
 To manually apply/update policy:
 ```bash
-openshell policy set --policy ~/openclaw-agent/bin/sandbox-policy.yaml rich-biatch --wait
+openshell policy set --policy ~/openclaw-agent/bin/sandbox-policy.yaml <sandbox-name> --wait
 ```
 
 ---
@@ -294,9 +294,9 @@ source ~/.bashrc
 Or just: `bash /sandbox/workspace/start`
 
 **Telegram/Yahoo/RSS 403 proxy errors**
-1. Check policy is applied: `openshell policy get rich-biatch`
+1. Check policy is applied: `openshell policy get <sandbox-name>`
 2. Check binary matches: `readlink -f /sandbox/.venv/bin/python3` — must match a `binaries` glob in policy
-3. Re-apply: `openshell policy set --policy ~/openclaw-agent/bin/sandbox-policy.yaml rich-biatch --wait`
+3. Re-apply: `openshell policy set --policy ~/openclaw-agent/bin/sandbox-policy.yaml <sandbox-name> --wait`
 4. After sandbox rebuild, policy is wiped — `deploy.sh` re-applies it automatically
 
 **LLM calls fail (403 Forbidden from inference.local)**
@@ -362,7 +362,7 @@ Then re-onboard and deploy.
 **`nemoclaw onboard` step 6 fails ("sandbox not found")**
 The sandbox name exists in config but the container is gone.
 ```bash
-openshell sandbox create --name rich-biatch
+openshell sandbox create --name <sandbox-name>
 bash ~/openclaw-agent/bin/install.sh --from-step 7
 bash ~/openclaw-agent/bin/deploy.sh
 ```
