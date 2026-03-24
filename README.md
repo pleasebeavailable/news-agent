@@ -109,7 +109,27 @@ openshell inference get
 > `inference.local` does NOT need to be in `no_proxy` or the network policy allowlist
 > (though having it there doesn't hurt).
 
-### 5. Deploy (one command does everything)
+### 5. Install OpenClaw CLI (if missing)
+
+If `openclaw` is not available inside the sandbox (`which openclaw` returns nothing),
+install it manually via npm:
+
+```bash
+nemoclaw rich-biatch connect
+mkdir -p /sandbox/.npm-global
+npm config set prefix /sandbox/.npm-global
+npm install -g openclaw@latest
+echo 'export PATH="/sandbox/.npm-global/bin:$PATH"' >> /sandbox/.bashrc
+source /sandbox/.bashrc
+openclaw --version   # verify
+```
+
+> **Note:** The sandbox filesystem is read-only under `/usr`, so npm's default global
+> prefix won't work. The above installs to `/sandbox/.npm-global` instead.
+> The `npm` network policy in `sandbox-policy.yaml` must be applied first
+> (`registry.npmjs.org` needs to be reachable).
+
+### 6. Deploy (one command does everything)
 
 ```bash
 bash ~/openclaw-agent/bin/deploy.sh
@@ -123,7 +143,7 @@ This automatically:
 - Sets up `start` command (symlink + PATH in `.bashrc`)
 - Applies network policy (Telegram, Yahoo Finance, RSS, PyPI)
 
-### 6. Start the bot
+### 7. Start the bot
 
 ```bash
 nemoclaw <sandbox-name> connect
@@ -131,7 +151,7 @@ start
 tail -f /tmp/nemoclaw.log
 ```
 
-### 7. Verify
+### 8. Verify
 
 - Send `status` in Telegram — should reply "All systems go"
 - Send `watchlist` — should return live prices
