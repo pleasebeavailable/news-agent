@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import threading
 import time
 
 import requests
@@ -12,6 +13,8 @@ MODEL = "nvidia/nemotron-3-super-120b-a12b"
 
 MAX_RETRIES = 3
 RETRY_BACKOFF = [5, 15, 30]  # seconds between retries
+
+_LLM_LOCK = threading.Lock()
 
 logger = logging.getLogger(__name__)
 
@@ -33,19 +36,20 @@ def chat(messages: list[dict], temperature: float = 0.3, max_tokens: int = 1024)
     last_error = None
     for attempt in range(MAX_RETRIES):
         try:
-            t0 = time.time()
-            resp = requests.post(
-                f"{ENDPOINT}/chat/completions",
-                headers=_headers(),
-                json={
-                    "model": MODEL,
-                    "messages": messages,
-                    "temperature": temperature,
-                    "max_tokens": max_tokens,
-                },
-                timeout=90,
-            )
-            resp.raise_for_status()
+            with _LLM_LOCK:
+                t0 = time.time()
+                resp = requests.post(
+                    f"{ENDPOINT}/chat/completions",
+                    headers=_headers(),
+                    json={
+                        "model": MODEL,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens,
+                    },
+                    timeout=90,
+                )
+                resp.raise_for_status()
             data = resp.json()
             result = data["choices"][0]["message"]["content"] or ""
             finish = data["choices"][0].get("finish_reason", "unknown")
