@@ -13,6 +13,7 @@ LINES=""
 for arg in "$@"; do
   case "$arg" in
     -f) FOLLOW=true ;;
+    *[!0-9]*) echo "Usage: log [-f] [N]" >&2; exit 1 ;;
     *)  LINES="$arg" ;;
   esac
 done
