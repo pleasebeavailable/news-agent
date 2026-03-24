@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Start NemoClaw with nohup — survives SSH disconnects.
-# Logs: tail -f /tmp/nemoclaw.log
+# Logs: tail -F /tmp/nemoclaw.log
 
 SESSION_LOG="/tmp/nemoclaw.log"  # Python handles rotation; nohup captures only uncaught crashes
 CRASH_LOG="/tmp/nemoclaw-crash.log"
@@ -30,5 +30,5 @@ disown $NEW_PID
 echo ""
 echo "NemoClaw started (PID $NEW_PID) — survives SSH disconnect."
 echo ""
-echo "  Logs : tail -f $SESSION_LOG  (crash: $CRASH_LOG)"
+echo "  Logs : tail -F $SESSION_LOG  (crash: $CRASH_LOG)"
 echo "  Stop : kill $NEW_PID  (or kill \$(cat /tmp/nemoclaw.lock))"
