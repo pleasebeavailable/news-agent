@@ -201,10 +201,16 @@ Telegram → poll_loop() → handle_message() → skill router
                                              └── free-form chat       (LLM, 20-msg history)
 
 Background scheduler (30s tick):
-  ├── every N min  → run_news_cycle()   [fetch → score → store → alert]
-  ├── every 5 min  → run_geo_scan()     [geo alert if score ≥7]
+  ├── every N min  → run_news_cycle()   [fetch all → score → store → alert]
+  ├── every 20 min → run_geo_scan()     [fetch geo only → score → store → alert if ≥7]
   ├── weekdays 07:00 → morning_brief
   └── Saturday 07:00 → weekly_summary
+
+Startup:
+  1. init_db() — creates SQLite tables (WAL mode)
+  2. scheduler thread starts
+  3. startup news cycle fires in background thread
+  4. Telegram poll loop starts
 ```
 
 | Component | Value |
@@ -234,7 +240,7 @@ it does NOT need a network policy entry to work for POST requests.
 | `nvidia_inference` | inference.local, integrate.api.nvidia.com | LLM inference (must have `rules: allow method: "*"` for POST) |
 | `telegram` | api.telegram.org | bot send/receive (must allow POST to `/bot*/**`) |
 | `yahoo_finance` | query1/query2/finance.yahoo.com, fc.yahoo.com | yfinance + crumb auth |
-| `rss_feeds` | marketwatch, cnbc, bbc, feedburner, investing, rsshub, seekingalpha | news fetching |
+| `rss_feeds` | marketwatch, dowjones, cnbc, bbc, feedburner, investing, rsshub, seekingalpha, aljazeera, guardian, ft, bloomberg, google news, hoisington, gorozen, artberman, geopoliticalfutures, geopoliticalalpha | news + research fetching |
 | `pypi` | pypi.org, files.pythonhosted.org | pip install |
 
 **Critical: endpoint rules.** The OpenShell L7 proxy defaults to **read-only (GET only)**
@@ -274,6 +280,19 @@ To manually apply/update policy:
 ```bash
 openshell policy set --policy ~/openclaw-agent/bin/sandbox-policy.yaml rich-biatch --wait
 ```
+
+### Adding a new RSS feed or research source
+
+When you add a feed to `config/news_sources.yaml`, you **must also** add its hostname
+to `bin/sandbox-policy.yaml` under the `rss_feeds` block. Otherwise the sandbox proxy
+blocks the request with `403 Forbidden` / `ProxyError: Tunnel connection failed`.
+
+Checklist:
+1. Add the feed to `config/news_sources.yaml`
+2. Extract the hostname: `python3 -c "from urllib.parse import urlparse; print(urlparse('THE_URL').hostname)"`
+3. Add `- host: <hostname>` + `port: 443` under `rss_feeds.endpoints` in `bin/sandbox-policy.yaml`
+4. If the feed is a geo source, add `geo: true` to the YAML entry and add the feed name to `GEO_SOURCES` in `core/news_fetcher.py`
+5. Deploy: `bash ~/openclaw-agent/bin/deploy.sh` (re-applies policy automatically)
 
 ---
 
