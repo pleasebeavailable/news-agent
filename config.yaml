@@ -20,5 +20,3 @@ inference:
 
 logging:
   level: "info"
-  file: "/tmp/nemoclaw.log"
-  retention_days: 30  # rotated daily, older files auto-deleted
