@@ -123,6 +123,19 @@ network_policies:
     - path: /usr/bin/git
 
   # ── Package managers ───────────────────────────────────────────
+  npm:
+    name: npm
+    endpoints:
+    - host: registry.npmjs.org
+      port: 443
+    - host: objects.githubusercontent.com
+      port: 443
+    binaries:
+    - path: /usr/bin/node
+    - path: /usr/bin/npm
+    - path: /usr/local/bin/npm
+    - path: /usr/lib/node_modules/**
+
   pypi:
     name: pypi
     endpoints:
