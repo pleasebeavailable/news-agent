@@ -3,6 +3,9 @@
 # Uploaded and executed by deploy.sh
 set -e
 
+# Ensure log directory exists
+mkdir -p /sandbox/workspace/logs
+
 # Ensure venv exists with correct Python
 if [ ! -f /sandbox/.venv/bin/python3 ]; then
   echo "Creating venv..."
