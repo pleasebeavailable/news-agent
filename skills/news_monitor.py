@@ -56,16 +56,12 @@ def _format_alert(article: dict) -> str:
             f"🏷️ {article.get('category', '')} | Tickers: {tickers or 'none'}"
         )
 
-    # Score 7-8 — compact format
-    kill = "⚠️ *Kill switch proximity detected*\n" if article.get("kill_switch_triggered") else ""
+    # Score 7-8 — short format
+    kill = "\n⚠️ *Kill switch*" if article.get("kill_switch_triggered") else ""
     return (
-        f"📰 *Alert* (Score: {score}/10)\n"
-        f"{article['title']}\n"
-        f"📡 {article['source']}\n"
-        f"• Impact: {article.get('portfolio_impact', 'n/a')}\n"
-        f"• Consider: {article.get('suggested_action', 'No action needed')}\n"
+        f"📰 [{score}/10] {article['title']}\n"
+        f"💡 {article.get('portfolio_impact', 'n/a')}"
         f"{kill}"
-        f"🏷️ {article.get('category', '')} | {tickers or 'none'}"
     )
 
 
@@ -116,7 +112,14 @@ def get_news_by_topic(topic: str) -> str:
 
     lines = [f"📰 *News: {topic}*", "━━━━━━━━━━━━━━━━━━━"]
     for a in matches[:5]:
-        lines.append(f"[{a['score']}/10] {a['title']}\n  _{a.get('summary', '')[:100]}_")
+        parts = [f"[{a['score']}/10] {a['title']}"]
+        if a.get("summary"):
+            parts.append(f"  _{a['summary'][:300]}_")
+        if a.get("portfolio_impact"):
+            parts.append(f"  Impact: {a['portfolio_impact']}")
+        if a.get("suggested_action"):
+            parts.append(f"  Consider: {a['suggested_action']}")
+        lines.append("\n".join(parts))
     return "\n\n".join(lines)
 
 

@@ -97,15 +97,13 @@ def run_geo_scan() -> None:
                 f"*Consider:* {article.get('suggested_action', 'N/A')}"
             )
         else:
-            # Score 7-8 — compact
-            kill = "⚠️ *Kill switch proximity detected*\n" if article.get("kill_switch_triggered") else ""
+            # Score 7-8 — short format
+            kill = "\n⚠️ *Kill switch*" if article.get("kill_switch_triggered") else ""
             msg = (
-                f"🌍 *Geo Alert* (Score: {score}/10)\n"
-                f"📰 {article['title']}\n"
-                f"📡 {article.get('source', '?')}\n"
-                f"• Impact: {article.get('portfolio_impact', 'N/A')}\n"
+                f"🌍 [{score}/10] {article['title']}\n"
+                f"💡 {article.get('portfolio_impact', 'N/A')}"
                 f"{kill}"
-            ).rstrip()
+            )
         telegram_bot.send(msg)
         logger.info("Geo alert sent: %s", article['title'])
 
