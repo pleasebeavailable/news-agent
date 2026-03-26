@@ -3,4 +3,3 @@ feedparser
 pyyaml
 schedule
 requests
-pytest
