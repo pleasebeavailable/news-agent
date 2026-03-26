@@ -114,7 +114,7 @@ def get_news_by_topic(topic: str) -> str:
     for a in matches[:5]:
         parts = [f"[{a['score']}/10] {a['title']}"]
         if a.get("summary"):
-            parts.append(f"  _{a['summary']}_")
+            parts.append(f"  _{a['summary'][:300]}_")
         if a.get("portfolio_impact"):
             parts.append(f"  Impact: {a['portfolio_impact']}")
         if a.get("suggested_action"):
