@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Start NemoClaw with nohup — survives SSH disconnects.
-# Logs: tail -F /tmp/nemoclaw.log
+# Logs: tail -F /sandbox/workspace/logs/all.log
 
-SESSION_LOG="/tmp/nemoclaw.log"  # Python handles rotation; nohup captures only uncaught crashes
+SESSION_LOG="/sandbox/workspace/logs/all.log"
 CRASH_LOG="/tmp/nemoclaw-crash.log"
 
 # Kill any existing process
