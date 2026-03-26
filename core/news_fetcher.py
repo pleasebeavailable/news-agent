@@ -11,7 +11,7 @@ import requests
 import yaml
 from pathlib import Path
 
-from core.news_store import url_exists
+from core.news_store import url_exists, get_recent_titles
 
 logger = logging.getLogger(__name__)
 
@@ -200,7 +200,7 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
     If *source_filter* is given, only feeds whose name is in the set are fetched.
     """
     articles = []
-    seen_titles: list[str] = []
+    seen_titles: list[str] = get_recent_titles(48)
 
     for feed_cfg in _sources()["rss_feeds"]:
         if source_filter and feed_cfg["name"] not in source_filter:
