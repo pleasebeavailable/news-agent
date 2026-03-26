@@ -104,6 +104,17 @@ def try_mark_alerted(article_id: int) -> bool:
         return cur.rowcount > 0
 
 
+def get_recent_titles(since_hours: int = 48) -> list[str]:
+    """Return titles from the last *since_hours* for cross-cycle dedup."""
+    since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT title FROM scored_news WHERE fetched_at >= ?",
+            (since.isoformat(),),
+        ).fetchall()
+    return [r["title"] for r in rows]
+
+
 def get_recent(since_hours: int = 16, min_score: int = 5, limit: int = 10) -> list[dict]:
     since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
     with _conn() as conn:
