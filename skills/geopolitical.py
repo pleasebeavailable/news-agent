@@ -84,14 +84,26 @@ def run_geo_scan() -> None:
     for article in alerted:
         if not news_store.try_mark_alerted(article["id"]):
             continue  # another thread already sent this alert
-        msg = (
-            f"🌍 *Geo Alert* (Score: {article['score']}/10)\n"
-            f"━━━━━━━━━━━━━━━━━━━\n"
-            f"📰 {article['title']}\n"
-            f"📡 {article.get('source', '?')}\n\n"
-            f"*Impact:* {article.get('portfolio_impact', 'N/A')}\n"
-            f"*Consider:* {article.get('suggested_action', 'N/A')}"
-        )
+        score = article['score']
+        if score >= 9:
+            # High importance — full detail with summary
+            msg = (
+                f"🌍 *Geo Alert* (Score: {score}/10)\n"
+                f"━━━━━━━━━━━━━━━━━━━\n"
+                f"📰 {article['title']}\n"
+                f"📡 {article.get('source', '?')}\n\n"
+                f"*What happened:*\n{article.get('summary', 'N/A')}\n\n"
+                f"*Impact:* {article.get('portfolio_impact', 'N/A')}\n"
+                f"*Consider:* {article.get('suggested_action', 'N/A')}"
+            )
+        else:
+            # Score 7-8 — short format
+            kill = "\n⚠️ *Kill switch*" if article.get("kill_switch_triggered") else ""
+            msg = (
+                f"🌍 [{score}/10] {article['title']}\n"
+                f"💡 {article.get('portfolio_impact', 'N/A')}"
+                f"{kill}"
+            )
         telegram_bot.send(msg)
         logger.info("Geo alert sent: %s", article['title'])
 

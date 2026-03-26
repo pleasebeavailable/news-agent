@@ -39,17 +39,29 @@ def run_news_cycle():
 
 def _format_alert(article: dict) -> str:
     tickers = ", ".join(article.get("affected_tickers") or [])
-    kill = "⚠️ *Kill switch proximity detected*\n" if article.get("kill_switch_triggered") else ""
+    score = article["score"]
+
+    if score >= 9:
+        # High importance — full detail
+        kill = "⚠️ *Kill switch proximity detected*\n" if article.get("kill_switch_triggered") else ""
+        return (
+            f"🚨 *ALERT* (Score: {score}/10)\n"
+            f"━━━━━━━━━━━━━━━━━━━\n"
+            f"📰 {article['title']}\n"
+            f"📡 Source: {article['source']} (Tier {article.get('source_tier', '?')})\n\n"
+            f"*What happened:*\n{article.get('summary', '')}\n\n"
+            f"*Portfolio impact:*\n{article.get('portfolio_impact', 'n/a')}\n\n"
+            f"*Consider:*\n{article.get('suggested_action', 'No action needed')}\n\n"
+            f"{kill}"
+            f"🏷️ {article.get('category', '')} | Tickers: {tickers or 'none'}"
+        )
+
+    # Score 7-8 — short format
+    kill = "\n⚠️ *Kill switch*" if article.get("kill_switch_triggered") else ""
     return (
-        f"🚨 *ALERT* (Score: {article['score']}/10)\n"
-        f"━━━━━━━━━━━━━━━━━━━\n"
-        f"📰 {article['title']}\n"
-        f"📡 Source: {article['source']} (Tier {article.get('source_tier', '?')})\n\n"
-        f"*What happened:*\n{article.get('summary', '')}\n\n"
-        f"*Portfolio impact:*\n{article.get('portfolio_impact', 'n/a')}\n\n"
-        f"*Consider:*\n{article.get('suggested_action', 'No action needed')}\n\n"
+        f"📰 [{score}/10] {article['title']}\n"
+        f"💡 {article.get('portfolio_impact', 'n/a')}"
         f"{kill}"
-        f"🏷️ {article.get('category', '')} | Tickers: {tickers or 'none'}"
     )
 
 
@@ -62,11 +74,25 @@ def get_recent_news(min_score: int = 5, limit: int = 5) -> str:
     lines = [f"📰 *Recent News* (last 24h, score ≥{min_score})", "━━━━━━━━━━━━━━━━━━━"]
     for a in articles:
         tickers = ", ".join(json.loads(a.get("affected_tickers") or "[]"))
-        lines.append(
-            f"[{a['score']}/10] {a['title']}\n"
-            f"  _{a.get('portfolio_impact', '')}_"
-            + (f"\n  Tickers: {tickers}" if tickers else "")
-        )
+        score = a["score"]
+        if score >= 9:
+            # High importance — title + impact + action
+            lines.append(
+                f"[{score}/10] {a['title']}\n"
+                f"  _{a.get('portfolio_impact', '')}_\n"
+                f"  Consider: {a.get('suggested_action', '')}"
+                + (f"\n  Tickers: {tickers}" if tickers else "")
+            )
+        elif score >= 7:
+            # Medium — title + impact
+            lines.append(
+                f"[{score}/10] {a['title']}\n"
+                f"  _{a.get('portfolio_impact', '')}_"
+                + (f"\n  Tickers: {tickers}" if tickers else "")
+            )
+        else:
+            # Score 5-6 — title only
+            lines.append(f"[{score}/10] {a['title']}")
     return "\n\n".join(lines)
 
 
@@ -86,7 +112,14 @@ def get_news_by_topic(topic: str) -> str:
 
     lines = [f"📰 *News: {topic}*", "━━━━━━━━━━━━━━━━━━━"]
     for a in matches[:5]:
-        lines.append(f"[{a['score']}/10] {a['title']}\n  _{a.get('summary', '')[:100]}_")
+        parts = [f"[{a['score']}/10] {a['title']}"]
+        if a.get("summary"):
+            parts.append(f"  _{a['summary'][:300]}_")
+        if a.get("portfolio_impact"):
+            parts.append(f"  Impact: {a['portfolio_impact']}")
+        if a.get("suggested_action"):
+            parts.append(f"  Consider: {a['suggested_action']}")
+        lines.append("\n".join(parts))
     return "\n\n".join(lines)
 
 

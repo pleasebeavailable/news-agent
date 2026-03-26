@@ -28,7 +28,10 @@ S&P 500 (benchmark): {weekly_%}
 (Flag any ticker moving >5% with details)
 
 📰 *Key Events This Week*
-• Event — impact on specific holdings (2-3 most important only)
+• For score 9-10 events: 2-3 sentences with cross-references to thesis implications
+• For score 7-8 events: 1 sentence each
+• Group related events together
+(Up to 5 most important events, plus brief "Also notable:" line for the rest)
 
 ⚠️ *Thesis Check*
 For EACH ticker with a defined thesis, evaluate:
@@ -53,8 +56,9 @@ Special attention:
 Reference the stance (HOLD/ACCUMULATE/TRIM) from theses when suggesting actions.
 
 RULES:
-- Under 500 words (more space than morning brief — it's the weekend deep-think)
+- Under 700 words (more space than morning brief — it's the weekend deep-think)
 - Be specific — reference numbers, dates, percentages, cost bases
+- Cross-reference events with thesis drivers when possible — connect the dots between news items
 - Thesis drift is the most valuable section. Be brutally honest.
 - Compare portfolio performance to S&P 500 benchmark
 - If a kill switch is close to triggering, lead with it
