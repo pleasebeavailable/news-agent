@@ -46,22 +46,57 @@ except BlockingIOError:
 
 from core import telegram_bot, config_loader, news_store, llm_client
 
-_LOG_FILE = os.environ.get("NEMOCLAW_LOG_FILE", "/tmp/nemoclaw.log")
+_LOG_DIR = os.environ.get("NEMOCLAW_LOG_DIR", "/sandbox/workspace/logs")
+os.makedirs(_LOG_DIR, exist_ok=True)
 try:
     _LOG_RETENTION_DAYS = int(os.environ.get("NEMOCLAW_LOG_RETENTION_DAYS", "30"))
 except ValueError:
     _LOG_RETENTION_DAYS = 30
 _LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s — %(message)s"
 
-_file_handler = logging.handlers.TimedRotatingFileHandler(
-    _LOG_FILE, when="midnight", backupCount=_LOG_RETENTION_DAYS, utc=True,
+_CATEGORIES = {
+    "app":  ("__main__", "core.telegram_bot", "core.stock_data", "skills.stock_price",
+             "skills.research", "skills.earnings", "skills.morning_brief", "skills.weekly_summary"),
+    "news": ("core.news_fetcher", "core.news_scorer", "core.news_store", "skills.news_monitor"),
+    "llm":  ("core.llm_client",),
+    "geo":  ("skills.geopolitical",),
+}
+
+
+class _CategoryFilter(logging.Filter):
+    def __init__(self, prefixes):
+        super().__init__()
+        self._prefixes = prefixes
+
+    def filter(self, record):
+        return record.name.startswith(self._prefixes)
+
+
+_formatter = logging.Formatter(_LOG_FORMAT)
+_handlers = []
+
+for _cat, _prefixes in _CATEGORIES.items():
+    _h = logging.handlers.TimedRotatingFileHandler(
+        os.path.join(_LOG_DIR, f"{_cat}.log"),
+        when="midnight", backupCount=_LOG_RETENTION_DAYS, utc=True,
+    )
+    _h.setFormatter(_formatter)
+    _h.addFilter(_CategoryFilter(_prefixes))
+    _handlers.append(_h)
+
+# all.log — no filter, catches everything including third-party libs
+_all_handler = logging.handlers.TimedRotatingFileHandler(
+    os.path.join(_LOG_DIR, "all.log"),
+    when="midnight", backupCount=_LOG_RETENTION_DAYS, utc=True,
 )
-_file_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+_all_handler.setFormatter(_formatter)
+_handlers.append(_all_handler)
 
 _console_handler = logging.StreamHandler()
-_console_handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+_console_handler.setFormatter(_formatter)
+_handlers.append(_console_handler)
 
-logging.basicConfig(level=logging.INFO, format=_LOG_FORMAT, handlers=[_file_handler, _console_handler])
+logging.basicConfig(level=logging.INFO, format=_LOG_FORMAT, handlers=_handlers)
 logger = logging.getLogger(__name__)
 logger.info("Lock acquired (PID=%d)", os.getpid())
 

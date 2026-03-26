@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Pull logs from sandbox into local logs/ folder.
+# Usage: bash ~/openclaw-agent/bin/fetch-log [--follow] [CATEGORY]
+#
+# Categories: app, news, llm, geo, all (default)
+# Examples:
+#   fetch-log              — download all.log
+#   fetch-log news         — download news.log
+#   fetch-log --follow     — stream all.log
+#   fetch-log --follow geo — stream geo.log
+
+SANDBOX="rich-biatch"
+REMOTE_DIR="/sandbox/workspace/logs"
+LOCAL_DIR="$(dirname "$0")/../logs"
+CATEGORY="all"
+
+for arg in "$@"; do
+  case "$arg" in
+    --follow) FOLLOW=true ;;
+    app|news|llm|geo|all) CATEGORY="$arg" ;;
+    *) echo "Usage: fetch-log [--follow] [CATEGORY]" >&2; echo "Categories: app, news, llm, geo, all" >&2; exit 1 ;;
+  esac
+done
+
+REMOTE_LOG="$REMOTE_DIR/$CATEGORY.log"
+LOCAL_LOG="$LOCAL_DIR/$CATEGORY.log"
+
+mkdir -p "$LOCAL_DIR"
+
+if [[ "${FOLLOW:-}" == "true" ]]; then
+  echo "Streaming $SANDBOX:$REMOTE_LOG (Ctrl+C to stop)..."
+  printf 'tail -f %s\nexit\n' "$REMOTE_LOG" | nemoclaw "$SANDBOX" connect
+else
+  printf 'cat %s\nexit\n' "$REMOTE_LOG" \
+    | nemoclaw "$SANDBOX" connect > "$LOCAL_LOG" 2>/dev/null
+  echo "Saved to $LOCAL_LOG ($(wc -l < "$LOCAL_LOG") lines)"
+fi
