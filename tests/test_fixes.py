@@ -568,6 +568,10 @@ class TestGeoBypassCap:
 # ── Fix #17: Config YAML has geo flags on geo feeds ───────────────
 
 class TestConfigGeoFlags:
+    @pytest.mark.skipif(
+        not os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), "config", "news_sources.yaml")),
+        reason="Personal config not present (gitignored)"
+    )
     def test_geo_feeds_flagged(self):
         import yaml
         config_path = os.path.join(

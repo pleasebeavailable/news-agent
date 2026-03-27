@@ -10,11 +10,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Compile check
-        run: python3 -m py_compile main.py core/*.py skills/*.py
+      - name: Setup Python
+        run: |
+          brew install python@3.12 2>/dev/null || true
+          echo "$(brew --prefix python@3.12)/libexec/bin" >> $GITHUB_PATH
 
       - name: Install test deps
-        run: pip3 install -r requirements.txt pytest
+        run: |
+          python3 -m pip install --user -r requirements.txt pytest
+
+      - name: Compile check
+        run: python3 -m py_compile main.py core/*.py skills/*.py
 
       - name: Run tests
         run: python3 -m pytest tests/ -v
