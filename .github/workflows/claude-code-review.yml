@@ -10,7 +10,7 @@ jobs:
     if: |
       !github.event.pull_request.draft &&
       github.event.pull_request.user.login != 'claude[bot]'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS]
     permissions:
       contents: write
       pull-requests: write
