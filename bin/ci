@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Local CI — compile check + tests. Run before merge/push.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+echo "=== Compile check ==="
+python3 -m py_compile main.py core/*.py skills/*.py
+echo "OK"
+
+echo ""
+echo "=== Tests ==="
+python3 -m pytest tests/ -v
+
+echo ""
+echo "=== CI passed ==="
