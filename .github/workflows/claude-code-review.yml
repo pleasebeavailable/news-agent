@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
 
+concurrency:
+  group: review-${{ github.head_ref }}
+  cancel-in-progress: true
+
 jobs:
   review-and-fix:
     # Skip drafts and Claude's own fix commits to prevent loops
