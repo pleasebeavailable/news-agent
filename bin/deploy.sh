@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Deploy Phase 2 code to the rich-biatch sandbox.
+# Deploy Phase 2 code to sandbox.
 # Usage:  bash ~/openclaw-agent/bin/deploy.sh
 
 set -euo pipefail
@@ -14,7 +14,7 @@ if [ ! -f .env ]; then
 fi
 set -a; source .env; set +a
 
-SANDBOX="rich-biatch"
+SANDBOX="${NEMOCLAW_SANDBOX:-my-sandbox}"
 REMOTE="/sandbox/workspace"
 
 # openshell sandbox upload places the file INSIDE the remote path (like cp file dir/)

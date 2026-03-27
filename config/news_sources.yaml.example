@@ -1,0 +1,56 @@
+rss_feeds:
+  # Tier 1: Most reliable, free, fast
+  - name: Reuters Business
+    url: https://news.google.com/rss/search?q=when:24h+allinurl:reuters.com+business&ceid=US:en&hl=en-US&gl=US
+    tier: 1
+  - name: CNBC Top News
+    url: https://www.cnbc.com/id/100003114/device/rss/rss.html
+    tier: 1
+  - name: MarketWatch Top Stories
+    url: https://feeds.content.dowjones.io/public/rss/mw_topstories
+    tier: 1
+  - name: Yahoo Finance
+    url: https://finance.yahoo.com/news/rssindex
+    tier: 1
+  - name: BBC Business
+    url: http://feeds.bbci.co.uk/news/business/rss.xml
+    tier: 1
+
+  # Tier 2: Good but verify claims
+  - name: Investing.com News
+    url: https://www.investing.com/rss/news.rss
+    tier: 2
+
+  # Geopolitics focused
+  - name: Al Jazeera English
+    url: https://www.aljazeera.com/xml/rss/all.xml
+    tier: 1
+    geo: true
+  - name: BBC World
+    url: https://feeds.bbci.co.uk/news/world/rss.xml
+    tier: 1
+    geo: true
+  - name: Guardian World
+    url: https://www.theguardian.com/world/rss
+    tier: 1
+    geo: true
+
+# Optional: X/FinTwit monitoring via RSS bridge
+# x_fintwit:
+#   method: rss_bridge
+#   bridge_url: ""
+#   poll_interval_minutes: 5
+#   accounts:
+#     - handle: example_handle
+#       category: macro
+
+# Optional: Research URLs
+# research_urls:
+#   fetch_filter: free
+#   sources:
+#     - name: Example Research
+#       url: https://example.com
+#       author: Author Name
+#       category: macro
+#       access: free
+#       format: blog

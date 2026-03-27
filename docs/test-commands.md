@@ -4,7 +4,7 @@
 
 ```bash
 # Connect to sandbox
-nemoclaw rich-biatch connect
+nemoclaw <your-sandbox> connect
 
 # Start bot (survives SSH disconnect)
 start
@@ -135,7 +135,7 @@ tail -20 /tmp/nemoclaw.log
 
 ```bash
 # Check current active policy
-openshell policy get rich-biatch --full
+openshell policy get <your-sandbox> --full
 
 # Verify Yahoo Finance works (should return JSON)
 curl -s "https://query1.finance.yahoo.com/v8/finance/chart/NVDA?interval=1d&range=1d" | head -c 200
