@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: log [-f] [N] [CATEGORY]
-#   log           — all lines (all.log)
+#   log           — interactive category picker
 #   log 50        — last 50 lines
 #   log -f        — follow
 #   log -f 50     — last 50 lines + follow
@@ -20,6 +20,7 @@ if [ $# -eq 0 ]; then
   read -r CATEGORY
   case "$CATEGORY" in
     all|app|news|llm|geo) ;;
+    "") CATEGORY="all" ;;
     *) echo "Invalid category: $CATEGORY" >&2; exit 1 ;;
   esac
 else
