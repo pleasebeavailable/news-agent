@@ -27,13 +27,22 @@ jobs:
           python3 -m py_compile main.py core/*.py skills/*.py
 
       - name: Run tests
+        id: tests
         run: |
           source .venv/bin/activate
-          python3 -m pytest tests/ -v
+          python3 -m pytest tests/ -v 2>&1 | tee test-output.txt
+
+      - name: Save test output
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-output
+          path: test-output.txt
 
   review-and-fix:
     needs: check
     if: |
+      always() &&
       !github.event.pull_request.draft &&
       github.event.pull_request.user.login != 'claude[bot]'
     runs-on: [self-hosted, macOS]
@@ -42,6 +51,7 @@ jobs:
       pull-requests: write
       issues: read
       id-token: write
+      actions: read
 
     steps:
       - name: Checkout PR branch
@@ -50,12 +60,43 @@ jobs:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
+      - name: Download test output
+        if: needs.check.result == 'failure'
+        uses: actions/download-artifact@v4
+        with:
+          name: test-output
+        continue-on-error: true
+
       - name: Setup git identity
         run: |
           git config --global user.email "claude[bot]@users.noreply.github.com"
           git config --global user.name "claude[bot]"
 
-      - name: Claude Review & Fix
+      - name: Claude Fix CI Failure
+        if: needs.check.result == 'failure'
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            CI tests failed on this PR. Read test-output.txt for the failure details.
+
+            1. Diagnose the root cause from the test output
+            2. Fix the failing test or code
+            3. Commit the fix to this branch
+            4. Post a comment on the PR explaining: what failed, why, and what you fixed
+
+            Rules from CLAUDE.md:
+            - Config files (portfolio.yaml, theses.yaml, keywords.yaml, news_sources.yaml) are gitignored
+            - Tests must not depend on personal config files — mock them
+            - Minimal fix only, don't refactor
+          claude_args: |
+            --allowedTools "Read,Write,Edit,Glob,Grep,Bash(git:*),Bash(python:*)"
+
+      - name: Claude Review (tests passed)
+        if: needs.check.result == 'success'
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
@@ -79,7 +120,7 @@ jobs:
             --allowedTools "Read,Write,Edit,Glob,Grep,Bash(git:*),Bash(python:*)"
 
       - name: Enable auto-merge
-        if: success()
+        if: needs.check.result == 'success'
         run: gh pr merge --auto --squash ${{ github.event.pull_request.number }}
         env:
           GH_TOKEN: ${{ github.token }}
