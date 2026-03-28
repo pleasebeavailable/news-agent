@@ -17,7 +17,7 @@ COMMANDS = [
      "call": "get_news_by_topic", "args": "raw", "priority": 20},
 ]
 SCHEDULE = [
-    {"func": "run_news_cycle", "interval": "news_poll_minutes", "default": 15,
+    {"func": "run_news_cycle", "interval": "news_poll_minutes", "default": 60,
      "run_at_startup": True},
 ]
 HELP_ORDER = 4
@@ -49,9 +49,11 @@ def run_news_cycle():
             news_store.save_article(article)
 
             if article["score"] >= immediate_threshold:
-                msg = _format_alert(article)
-                telegram_bot.send(msg)
-                logger.info(f"Alert sent for: {article['title'][:60]}")
+                article_id = news_store.get_id_by_url(article.get("url")) if article.get("url") else None
+                if article_id is None or news_store.try_mark_alerted(article_id):
+                    msg = _format_alert(article)
+                    telegram_bot.send(msg)
+                    logger.info(f"Alert sent for: {article['title'][:60]}")
     except Exception as e:
         logger.error(f"News cycle failed: {e}")
         try:
