@@ -12,6 +12,12 @@ logger = logging.getLogger(__name__)
 
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "morning_brief.txt"
 
+_BRIEF_FIELDS = ("title", "score", "source", "affected_tickers", "summary", "published_at")
+
+
+def _slim(article: dict) -> dict:
+    return {k: article[k] for k in _BRIEF_FIELDS if k in article}
+
 
 def _article_date(a: dict) -> str:
     raw = a.get("published_at") or a.get("fetched_at") or ""
@@ -23,7 +29,7 @@ def assemble_data() -> dict:
     alerts_cfg = config_loader.alerts_config()
     raw_news = news_store.get_recent(since_hours=16, min_score=6, limit=10)
     # Stamp each article with its date so LLM knows article age
-    dated_news = [{**a, "title": f"[{_article_date(a)}] {a.get('title', '')}"} for a in raw_news]
+    dated_news = [{**_slim(a), "title": f"[{_article_date(a)}] {a.get('title', '')}"} for a in raw_news]
     return {
         "futures": stock_data.get_futures(),
         "news": dated_news,
