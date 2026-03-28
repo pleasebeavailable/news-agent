@@ -316,7 +316,7 @@ def poll_loop():
 
 
 def run_scheduler():
-    """Background thread: news cycle every 60 min, geo every 5 min, briefs on schedule."""
+    """Background thread: news cycle every 60 min, geo every 20 min, briefs on schedule."""
     from skills.news_monitor import run_news_cycle
     from skills.morning_brief import send_morning_brief
     from skills.weekly_summary import send_weekly_summary

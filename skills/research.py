@@ -30,7 +30,7 @@ def _get_recent_ticker_news(ticker: str) -> list[dict]:
     articles = news_store.get_recent(since_hours=72, min_score=4, limit=20)
     return [
         a for a in articles
-        if ticker in (a.get("affected_tickers") or "")
+        if ticker in json.loads(a.get("affected_tickers") or "[]")
         or ticker.lower() in (a.get("title") or "").lower()
     ]
 
