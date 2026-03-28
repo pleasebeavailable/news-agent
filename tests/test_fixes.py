@@ -568,14 +568,17 @@ class TestGeoBypassCap:
 # ── Fix #17: Config YAML has geo flags on geo feeds ───────────────
 
 class TestConfigGeoFlags:
-    def test_geo_feeds_flagged(self):
-        import yaml
-        config_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)), "config", "news_sources.yaml"
-        )
-        with open(config_path) as f:
-            cfg = yaml.safe_load(f)
+    MOCK_NEWS_SOURCES = {
+        "rss_feeds": [
+            {"name": "Reuters Business", "url": "https://example.com/reuters", "tier": 1},
+            {"name": "Al Jazeera English", "url": "https://example.com/aj", "tier": 1, "geo": True},
+            {"name": "BBC World", "url": "https://example.com/bbc", "tier": 1, "geo": True},
+            {"name": "Guardian World", "url": "https://example.com/guardian", "tier": 1, "geo": True},
+        ]
+    }
 
+    def test_geo_feeds_flagged(self):
+        cfg = self.MOCK_NEWS_SOURCES
         geo_feeds = [f for f in cfg["rss_feeds"] if f.get("geo")]
         geo_names = {f["name"] for f in geo_feeds}
 

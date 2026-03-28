@@ -9,7 +9,7 @@
 #   fetch-log --follow     — stream all.log
 #   fetch-log --follow geo — stream geo.log
 
-SANDBOX="rich-biatch"
+SANDBOX="${NEMOCLAW_SANDBOX:-my-sandbox}"
 REMOTE_DIR="/sandbox/workspace/logs"
 LOCAL_DIR="$(dirname "$0")/../logs"
 CATEGORY=""

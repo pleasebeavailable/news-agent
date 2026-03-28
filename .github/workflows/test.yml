@@ -1,0 +1,25 @@
+name: Test
+
+on:
+  push:
+    branches: [develop]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -r requirements.txt
+          python3 -m pip install -r requirements-dev.txt
+
+      - name: Compile check
+        run: find . -name '*.py' -not -path './.git/*' -not -path './venv/*' | xargs python3 -m py_compile
+
+      - name: Run tests
+        run: python3 -m pytest tests/ -v

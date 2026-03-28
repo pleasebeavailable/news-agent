@@ -1,0 +1,58 @@
+keyword_groups:
+
+  # ━━━ TIER 1 — DIRECT PORTFOLIO HOLDINGS ━━━
+
+  portfolio_tickers:
+    weight: 2.5
+    terms:
+      - AAPL
+      - Apple
+      - MSFT
+      - Microsoft
+      - XOM
+      - Exxon
+
+  portfolio_adjacent:
+    weight: 2.0
+    terms:
+      - iPhone
+      - Azure
+      - Permian Basin
+
+  # ━━━ TIER 2 — THEMATIC / SECTOR ━━━
+
+  ai_infrastructure:
+    weight: 1.8
+    terms:
+      - AI chip
+      - GPU
+      - data center
+      - hyperscaler capex
+      - AI infrastructure
+
+  semiconductors:
+    weight: 1.5
+    terms:
+      - chip
+      - semiconductor
+      - TSMC
+      - foundry
+
+  # ━━━ TIER 3 — MACRO & CROSS-CUTTING ━━━
+
+  macro_rates:
+    weight: 1.0
+    terms:
+      - Fed rate
+      - FOMC
+      - rate cut
+      - inflation
+      - CPI
+
+  market_regime:
+    weight: 1.0
+    terms:
+      - VIX
+      - volatility
+      - S&P 500
+      - correction
