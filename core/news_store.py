@@ -89,6 +89,15 @@ def url_exists(url: str) -> bool:
         return row is not None
 
 
+def get_id_by_url(url: str) -> int | None:
+    """Return the row id for a saved article by URL, or None if not found."""
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT id FROM scored_news WHERE url = ?", (url,)
+        ).fetchone()
+        return row["id"] if row else None
+
+
 def mark_alerted(article_id: int):
     with _conn() as conn:
         conn.execute("UPDATE scored_news SET alerted=1 WHERE id=?", (article_id,))
