@@ -10,6 +10,20 @@ from skills.earnings import get_upcoming_earnings
 
 logger = logging.getLogger(__name__)
 
+# ── Skill metadata (auto-discovery) ──────────────────────────────────
+COMMANDS = [
+    {"type": "exact", "pattern": "morning brief", "call": "send_morning_brief",
+     "thread": True, "ack": "Generating morning brief..."},
+    {"type": "exact", "pattern": "brief", "call": "send_morning_brief",
+     "thread": True, "ack": "Generating morning brief..."},
+]
+SCHEDULE = [
+    {"func": "send_morning_brief",
+     "days": ["monday", "tuesday", "wednesday", "thursday", "friday"], "at": "07:00"},
+]
+HELP_ORDER = 1
+HELP = "*Briefs*\n`morning brief` — run morning brief now"
+
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "morning_brief.txt"
 
 

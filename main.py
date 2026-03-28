@@ -111,144 +111,127 @@ _CHAT_HISTORY: list[dict] = []
 _CHAT_HISTORY_MAX = 20  # keep last 20 exchanges (~10 back-and-forth)
 _CHAT_LOCK = threading.Lock()
 
-# Import skills lazily to avoid startup errors if a dep is missing
-def _skills():
-    from skills import (
-        stock_price,
-        news_monitor,
-        earnings,
-        morning_brief,
-        weekly_summary,
-        research,
-        geopolitical,
+# ── Skill auto-discovery ─────────────────────────────────────────────
+import importlib
+import pkgutil
+import re
+
+_COMMANDS = None   # list of (cmd_dict, module)
+_SCHEDULES = None  # list of (sched_dict, module)
+
+
+def _discover_skills():
+    """Scan skills/ package, collect COMMANDS and SCHEDULE metadata."""
+    import skills
+    commands, schedules = [], []
+    for _, modname, _ in pkgutil.iter_modules(skills.__path__, skills.__name__ + "."):
+        try:
+            mod = importlib.import_module(modname)
+        except Exception:
+            logger.warning("Failed to import skill %s — skipping", modname, exc_info=True)
+            continue
+        for cmd in getattr(mod, "COMMANDS", []):
+            commands.append((cmd, mod))
+        for sched in getattr(mod, "SCHEDULE", []):
+            schedules.append((sched, mod))
+    # Sort: type first (exact < prefix < regex), then priority within type
+    type_order = {"exact": 0, "prefix": 1, "regex": 2}
+    commands.sort(key=lambda c: (type_order.get(c[0]["type"], 9), c[0].get("priority", 50)))
+    return commands, schedules
+
+
+def _ensure_discovered():
+    global _COMMANDS, _SCHEDULES
+    if _COMMANDS is None:
+        _COMMANDS, _SCHEDULES = _discover_skills()
+
+
+def _try_command(cmd, mod, text, text_lower):
+    """Match one command spec. Return response string or None."""
+    ctype = cmd["type"]
+    if ctype == "exact":
+        if text_lower != cmd["pattern"]:
+            return None
+        args = ()
+    elif ctype == "prefix":
+        if not text_lower.startswith(cmd["pattern"]):
+            return None
+        args = (text[len(cmd["pattern"]):].strip(),)
+    elif ctype == "regex":
+        m = re.match(cmd["pattern"], text)
+        if not m:
+            return None
+        arg_mode = cmd.get("args")
+        if arg_mode == "upper":
+            args = tuple(g.upper() for g in m.groups())
+        elif arg_mode == "raw":
+            args = m.groups()
+        else:
+            args = ()
+    else:
+        return None
+
+    func = getattr(mod, cmd["call"])
+    logger.info("routing: %s.%s%s", mod.__name__, cmd["call"],
+                ("(" + ", ".join(repr(a) for a in args) + ")") if args else "")
+
+    if cmd.get("thread"):
+        threading.Thread(target=func, args=args, daemon=True).start()
+        return cmd.get("ack", "Working on it...")
+    return func(*args)
+
+
+def _help_text():
+    _ensure_discovered()
+    seen, sections = set(), []
+    for _, mod in _COMMANDS:
+        if mod.__name__ not in seen:
+            seen.add(mod.__name__)
+            h = getattr(mod, "HELP", None)
+            if h:
+                order = getattr(mod, "HELP_ORDER", 99)
+                sections.append((order, h))
+    sections.sort(key=lambda x: x[0])
+    return (
+        "*NemoClaw Phase 2 — Commands*\n\n"
+        + "\n\n".join(s for _, s in sections)
+        + "\n\n*System*\n"
+        "`status` — bot health check\n"
+        "`reload` — reload config without restarting\n"
+        "`help` — this message"
     )
-    return {
-        "stock": stock_price,
-        "news": news_monitor,
-        "earnings": earnings,
-        "morning": morning_brief,
-        "weekly": weekly_summary,
-        "research": research,
-        "geo": geopolitical,
-    }
 
 
 def handle_message(text: str) -> str:
     """Route an incoming Telegram message to the right skill."""
-    import re
-
-    s = _skills()
+    _ensure_discovered()
     t = text.strip()
     tl = t.lower()
 
-    # Config commands
+    # Built-in commands (touch main.py internals, can't live in skills)
     if tl == "reload":
-        logger.info("routing: reload config")
+        logger.info("routing: reload")
         config_loader.reload_all()
         return "Config reloaded."
-
     if tl == "status":
         logger.info("routing: status")
         return "NemoClaw Phase 2 running. All systems go."
-
     if tl in ("help", "/help"):
         logger.info("routing: help")
-        return (
-            "*NemoClaw Phase 2 — Commands*\n\n"
-            "*Briefs*\n"
-            "`morning brief` — run morning brief now\n"
-            "`weekly summary` — run weekly summary now\n\n"
-            "*Portfolio*\n"
-            "`watchlist` — live prices for all positions\n"
-            "`portfolio` — positions with themes & P&L\n"
-            "`NVDA` — quote for any ticker\n"
-            "`NVDA vs AMD` — side-by-side comparison\n\n"
-            "*Geopolitics*\n"
-            "`geo` — geopolitical brief from recent news\n\n"
-            "*News*\n"
-            "`news` — latest scored headlines\n"
-            "`news AI` — headlines filtered by topic\n"
-            "`Any news on NVDA?` — news for a ticker\n"
-            "`alerts` — high-score alerts only\n"
-            "`kills` — kill switch status\n\n"
-            "*Earnings*\n"
-            "`earnings` — upcoming earnings for your tickers\n"
-            "`calendar` — full earnings calendar\n\n"
-            "*Research*\n"
-            "`Research PLTR` — bull/bear LLM analysis\n"
-            "`Deep dive NVDA` — full deep analysis\n"
-            "`What's happening with China?` — topic context\n\n"
-            "*System*\n"
-            "`status` — bot health check\n"
-            "`reload` — reload config without restarting\n"
-            "`help` — this message"
-        )
+        return _help_text()
 
-    # Brief commands
-    if tl in ("morning brief", "brief"):
-        logger.info("routing: morning brief on-demand")
-        threading.Thread(target=s["morning"].send_morning_brief, daemon=True).start()
-        return "Generating morning brief..."
-    if tl in ("weekly summary", "summary", "saturday brief"):
-        logger.info("routing: weekly summary on-demand")
-        threading.Thread(target=s["weekly"].send_weekly_summary, daemon=True).start()
-        return "Generating weekly summary..."
-
-    # News commands
-    if tl == "news":
-        logger.info("routing: news → get_recent_news")
-        return s["news"].get_recent_news()
-    if tl.startswith("news "):
-        logger.info("routing: news → topic=%s", t[5:].strip())
-        return s["news"].get_news_by_topic(t[5:].strip())
-    if tl == "alerts":
-        logger.info("routing: news → alerts")
-        return s["news"].get_recent_alerts()
-    if tl == "kills":
-        logger.info("routing: news → kill_switch_status")
-        return s["news"].get_kill_switch_status()
-
-    # Portfolio commands
-    if tl == "watchlist":
-        return s["stock"].get_watchlist_message()
-    if tl == "portfolio":
-        return s["stock"].get_portfolio_message()
-
-    # Geopolitical
-    if tl in ("geo", "geopolitical", "geopolitics"):
-        logger.info("routing: geo brief")
-        return s["geo"].get_geo_brief()
-
-    # Earnings
-    if tl == "earnings":
-        logger.info("routing: earnings")
-        return s["earnings"].get_upcoming_earnings_message()
-    if tl == "calendar":
-        logger.info("routing: calendar")
-        return s["earnings"].get_calendar_message()
-
-    # Research — "Research PLTR" / "Deep dive NVDA"
-    if m := re.match(r"(?i)research\s+(\w[\w.]+)", t):
-        logger.info("routing: research → %s", m.group(1).upper())
-        return s["research"].research_ticker(m.group(1).upper())
-    if m := re.match(r"(?i)deep\s+dive\s+(\w[\w.]+)", t):
-        logger.info("routing: deep_dive → %s", m.group(1).upper())
-        return s["research"].deep_dive(m.group(1).upper())
-    if m := re.match(r"(?i)any\s+news\s+on\s+(.+?)\??$", t):
-        logger.info("routing: news → topic=%s", m.group(1))
-        return s["news"].get_news_by_topic(m.group(1))
-    if m := re.match(r"(?i)what'?s\s+happening\s+with\s+(.+?)\??$", t):
-        logger.info("routing: topic_context → %s", m.group(1))
-        return s["research"].topic_context(m.group(1))
-
-    # Single ticker or comparison — must be last before free-form chat
-    if m := re.match(r"(?i)(\w[\w.]+)\s+vs\s+(\w[\w.]+)", t):
-        return s["stock"].compare(m.group(1).upper(), m.group(2).upper())
-    if re.match(r"^[A-Z0-9.]{1,10}$", t.upper()) and len(t.split()) == 1:
-        result = s["stock"].get_quote_message(t.upper())
+    # Skill commands via metadata
+    for cmd, mod in _COMMANDS:
+        result = _try_command(cmd, mod, t, tl)
         if result is not None:
             return result
-        # Not a valid ticker — fall through to free-form chat
+
+    # Single-ticker fallback (returns None → fall through to chat)
+    if re.match(r"^[A-Z0-9.]{1,10}$", t.upper()) and len(t.split()) == 1:
+        from skills import stock_price
+        result = stock_price.get_quote_message(t.upper())
+        if result is not None:
+            return result
 
     # Free-form chat fallback — stateful conversation with history
     logger.info("routing: free-form chat")
@@ -316,24 +299,21 @@ def poll_loop():
 
 
 def run_scheduler():
-    """Background thread: news cycle every 60 min, geo every 5 min, briefs on schedule."""
-    from skills.news_monitor import run_news_cycle
-    from skills.morning_brief import send_morning_brief
-    from skills.weekly_summary import send_weekly_summary
-    from skills.geopolitical import run_geo_scan
+    """Background thread: register scheduled tasks from skill metadata, then tick."""
+    _ensure_discovered()
+    sched_cfg = config_loader.schedule_config()
 
-    poll_minutes = config_loader.schedule_config().get("news_poll_minutes", 15)
-    schedule.every(poll_minutes).minutes.do(run_news_cycle)
-    logger.info("News polling every %d min", poll_minutes)
-    geo_minutes = config_loader.schedule_config().get("geo_poll_minutes", 20)
-    schedule.every(geo_minutes).minutes.do(run_geo_scan)
-    logger.info("Geo scan every %d min", geo_minutes)
-    schedule.every().monday.at("07:00").do(send_morning_brief)
-    schedule.every().tuesday.at("07:00").do(send_morning_brief)
-    schedule.every().wednesday.at("07:00").do(send_morning_brief)
-    schedule.every().thursday.at("07:00").do(send_morning_brief)
-    schedule.every().friday.at("07:00").do(send_morning_brief)
-    schedule.every().saturday.at("07:00").do(send_weekly_summary)
+    for sched, mod in _SCHEDULES:
+        func = getattr(mod, sched["func"])
+        if "interval" in sched:
+            minutes = sched_cfg.get(sched["interval"], sched["default"])
+            schedule.every(minutes).minutes.do(func)
+            logger.info("Scheduled %s.%s every %d min", mod.__name__, sched["func"], minutes)
+        elif "days" in sched:
+            for day in sched["days"]:
+                getattr(schedule.every(), day).at(sched["at"]).do(func)
+            logger.info("Scheduled %s.%s on %s at %s",
+                        mod.__name__, sched["func"], ",".join(sched["days"]), sched["at"])
 
     logger.info("Scheduler started")
     _start = time.time()
@@ -351,17 +331,21 @@ def run_scheduler():
 
 if __name__ == "__main__":
     news_store.init_db()
-    logger.info("NemoClaw Phase 2 starting up")
+    _ensure_discovered()
+    logger.info("NemoClaw Phase 2 starting up — %d commands, %d schedules",
+                len(_COMMANDS), len(_SCHEDULES))
 
     scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
     scheduler_thread.start()
 
-    # Run first news cycle immediately so DB is populated before user queries
-    from skills.news_monitor import run_news_cycle
-    threading.Thread(target=run_news_cycle, daemon=True, name="startup-news").start()
-    logger.info("Startup news cycle triggered")
+    # Run startup tasks from skill metadata
+    for sched, mod in _SCHEDULES:
+        if sched.get("run_at_startup"):
+            func = getattr(mod, sched["func"])
+            threading.Thread(target=func, daemon=True, name=f"startup-{sched['func']}").start()
+            logger.info("Startup task: %s.%s", mod.__name__, sched["func"])
 
-    if telegram_bot.send("NemoClaw Phase 2 online. Send `watchlist` to test."):
+    if telegram_bot.send("NemoClaw Phase 2 online. Send `help` for commands."):
         logger.info("Startup message sent to Telegram")
     else:
         logger.warning("Could not send startup message — Telegram may not be reachable yet")
