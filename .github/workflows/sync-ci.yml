@@ -1,0 +1,46 @@
+name: Sync CI workflow to main
+
+on:
+  push:
+    branches: [develop]
+    paths: [.github/workflows/ci.yml]
+
+jobs:
+  sync:
+    runs-on: [self-hosted, macOS]
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if ci.yml differs from main
+        id: diff
+        run: |
+          if git diff origin/main -- .github/workflows/ci.yml | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create sync PR
+        if: steps.diff.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BRANCH="sync/ci-yml-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH" origin/main
+          git checkout origin/develop -- .github/workflows/ci.yml
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add .github/workflows/ci.yml
+          git commit -m "sync: ci.yml from develop to main"
+          git push origin "$BRANCH"
+          gh pr create \
+            --base main \
+            --head "$BRANCH" \
+            --title "sync: ci.yml from develop" \
+            --body "Auto-generated: ci.yml changed on develop and must match main for claude-code-action to work."
