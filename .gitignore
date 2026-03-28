@@ -5,3 +5,9 @@ data/
 *.log
 logs/
 PLAN.md
+
+# Personal config — use .example files as templates
+config/portfolio.yaml
+config/theses.yaml
+config/keywords.yaml
+config/news_sources.yaml

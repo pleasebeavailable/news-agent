@@ -1,0 +1,21 @@
+AAPL:
+  thesis: >
+    Example thesis — describe why you hold this stock, key catalysts,
+    and revenue/earnings expectations.
+  kill: "Conditions that would make you sell — e.g. revenue decline, competitive threat."
+  stance: "HOLD. Add on pullback to $X."
+  strategy: core_hold
+
+MSFT:
+  thesis: >
+    Another example thesis with your investment rationale.
+  kill: "Kill conditions here."
+  stance: "HOLD. Core position."
+  strategy: core_hold
+
+XOM:
+  thesis: >
+    Energy sector thesis — commodity price outlook, dividend yield, etc.
+  kill: "Oil below $X sustained. Dividend cut."
+  stance: "ACCUMULATE on dips."
+  strategy: accumulate

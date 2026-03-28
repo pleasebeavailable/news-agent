@@ -2,7 +2,7 @@
 
 ## What it is
 
-A personal portfolio intelligence Telegram bot running on a remote sandbox (`rich-biatch`). You message it like a human assistant; it routes to specialized skills or falls back to free-form chat with "Rich" — a stateful LLM persona that knows your portfolio.
+A personal portfolio intelligence Telegram bot running on a remote sandbox. You message it like a human assistant; it routes to specialized skills or falls back to free-form chat with "Rich" — a stateful LLM persona that knows your portfolio.
 
 **Model:** `nvidia/nemotron-3-super-120b-a12b` via local inference proxy at `inference.local/v1`
 
@@ -136,7 +136,7 @@ All modules have structured logging to `/tmp/nemoclaw.log`:
 - **`.env` persistence:** `/sandbox/.openclaw-data/.env` → symlinked to workspace
 - **Proxy note:** `inference.local` resolves through the proxy — NOT in `no_proxy`
 - **tmux/screen:** not available on sandbox (no root) — nohup used instead
-- **Quick reference:** printed on every `nemoclaw rich-biatch connect` via `~/.bashrc`
+- **Quick reference:** printed on every `nemoclaw <your-sandbox> connect` via `~/.bashrc`
 
 ---
 

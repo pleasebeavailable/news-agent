@@ -4,15 +4,28 @@
 #
 # Categories: app, news, llm, geo, all (default)
 # Examples:
-#   fetch-log              — download all.log
+#   fetch-log              — interactive category picker
 #   fetch-log news         — download news.log
 #   fetch-log --follow     — stream all.log
 #   fetch-log --follow geo — stream geo.log
 
-SANDBOX="rich-biatch"
+SANDBOX="${NEMOCLAW_SANDBOX:-my-sandbox}"
 REMOTE_DIR="/sandbox/workspace/logs"
 LOCAL_DIR="$(dirname "$0")/../logs"
-CATEGORY="all"
+CATEGORY=""
+
+if [ $# -eq 0 ]; then
+  echo "Log categories: [all] [app] [news] [llm] [geo]"
+  printf "Choose: "
+  read -r CATEGORY
+  case "$CATEGORY" in
+    all|app|news|llm|geo) ;;
+    "") CATEGORY="all" ;;
+    *) echo "Invalid category: $CATEGORY" >&2; exit 1 ;;
+  esac
+else
+  CATEGORY="all"
+fi
 
 for arg in "$@"; do
   case "$arg" in

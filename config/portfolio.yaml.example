@@ -1,0 +1,46 @@
+watchlist:
+  # ── Theme A (e.g. AI Infra) ──
+  - ticker: AAPL
+    type: stock
+    exchange: NASDAQ
+    theme: Tech
+    shares: 10
+    cost: 150.00
+  - ticker: MSFT
+    type: stock
+    exchange: NASDAQ
+    theme: Tech
+    shares: 5
+    cost: 300.00
+
+  # ── Theme B (e.g. Commodities) ──
+  - ticker: XOM
+    type: stock
+    exchange: NYSE
+    theme: Energy
+    shares: 20
+    cost: 100.00
+
+display:
+  currency: USD
+  telegram_format: markdown
+
+schedule:
+  news_poll_minutes: 60
+  geo_poll_minutes: 20
+  morning_brief:
+    time: "07:00"
+    timezone: "UTC"
+    days: [mon, tue, wed, thu, fri]
+  weekly_summary:
+    time: "07:00"
+    timezone: "UTC"
+    day: sat
+
+alerts:
+  news_score_immediate: 7
+  news_score_log: 5
+  news_score_drop: 4
+  premarket_mover_pct: 3.0
+  earnings_alert: immediate
+  earnings_others: morning

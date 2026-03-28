@@ -1,6 +1,6 @@
 # Phase 2: Portfolio Intelligence Skills — Full Specification
 
-**Agent**: NemoClaw on OpenShell sandbox `rich-biatch`
+**Agent**: NemoClaw on OpenShell sandbox
 **Model**: nvidia/nemotron-3-super-120b-a12b (nvidia-nim, GPU-accelerated)
 **Interface**: Telegram bot
 **Scheduling**: `schedule` library in `main.py` (news every 15m, geo every 30m, briefs at 07:00)
@@ -314,7 +314,7 @@ SKYX:
 ## File Structure
 
 ```
-rich-biatch/
+nemoclaw/
 ├── config/
 │   ├── portfolio.yaml          # watchlist, display, schedule, thresholds
 │   ├── theses.yaml             # investment theses per ticker
