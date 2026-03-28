@@ -45,11 +45,16 @@ def _format_news_for_llm(articles: list[dict]) -> list[dict]:
 
 def _get_recent_ticker_news(ticker: str) -> list[dict]:
     articles = news_store.get_recent(since_hours=72, min_score=4, limit=20)
-    return [
-        a for a in articles
-        if ticker in (a.get("affected_tickers") or "")
-        or ticker.lower() in (a.get("title") or "").lower()
-    ]
+    result = []
+    for a in articles:
+        raw = a.get("affected_tickers") or "[]"
+        try:
+            tickers_list = json.loads(raw) if isinstance(raw, str) else raw
+        except (ValueError, TypeError):
+            tickers_list = []
+        if ticker in tickers_list or ticker.lower() in (a.get("title") or "").lower():
+            result.append(a)
+    return result
 
 
 def research_ticker(ticker: str) -> str:
