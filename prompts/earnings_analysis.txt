@@ -17,7 +17,7 @@ Revenue Actual: {rev_actual}
 Guidance: {guidance_notes}
 
 RESPOND IN THIS EXACT JSON FORMAT:
-{
+{{
   "beat_miss": "<beat|miss|inline>",
   "surprise_pct": <float>,
   "sentiment": "<bullish|neutral|bearish>",
@@ -26,4 +26,4 @@ RESPOND IN THIS EXACT JSON FORMAT:
   "kill_switch_check": "<Is the kill switch closer to triggering? Yes/No + why>",
   "stance_update": "<Should the stance change? e.g., 'Maintain HOLD' or 'Consider upgrading to ACCUMULATE'>",
   "suggested_action": "<1 sentence referencing position size and cost basis>"
-}
+}}
