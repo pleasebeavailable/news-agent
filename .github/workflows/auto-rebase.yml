@@ -1,0 +1,56 @@
+name: Auto-rebase PRs
+
+on:
+  push:
+    branches: [develop, main]
+
+jobs:
+  rebase:
+    runs-on: [self-hosted, macOS]
+    permissions:
+      contents: write
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Rebase open PRs targeting this branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          BASE="${GITHUB_REF_NAME}"
+          echo "Base branch: $BASE"
+
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+          # Get open PRs targeting this branch
+          prs=$(gh pr list --base "$BASE" --state open --json number,headRefName --jq '.[] | "\(.number) \(.headRefName)"')
+
+          if [ -z "$prs" ]; then
+            echo "No open PRs targeting $BASE"
+            exit 0
+          fi
+
+          echo "$prs" | while read -r pr_number branch; do
+            echo "--- PR #$pr_number ($branch) ---"
+
+            git fetch origin "$branch"
+            git checkout "origin/$branch"
+            git checkout -b "rebase-$pr_number"
+
+            if git rebase "origin/$BASE"; then
+              git push origin "rebase-$pr_number:$branch" --force-with-lease
+              echo "PR #$pr_number rebased successfully"
+            else
+              git rebase --abort
+              echo "PR #$pr_number has conflicts — skipping (manual resolution needed)"
+              gh pr comment "$pr_number" --body "⚠️ Auto-rebase failed — this PR has merge conflicts with \`$BASE\`. Please rebase manually." 2>/dev/null || true
+            fi
+
+            git checkout -
+            git branch -D "rebase-$pr_number" 2>/dev/null || true
+          done
