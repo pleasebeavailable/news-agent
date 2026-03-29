@@ -82,7 +82,7 @@ def _format_alert(article: dict) -> str:
     # Score 7-8 — short format
     kill = "\n⚠️ *Kill switch*" if article.get("kill_switch_triggered") else ""
     return (
-        f"📰 [{score}/10] {article['title']}\n"
+        f"📰 *[{score}/10] {article['title']}*\n"
         f"💡 {article.get('portfolio_impact', 'n/a')}"
         f"{kill}"
     )
@@ -101,7 +101,7 @@ def get_recent_news(min_score: int = 5, limit: int = 5) -> str:
         if score >= 9:
             # High importance — title + impact + action
             lines.append(
-                f"[{score}/10] {a['title']}\n"
+                f"*[{score}/10] {a['title']}*\n"
                 f"  _{a.get('portfolio_impact', '')}_\n"
                 f"  Consider: {a.get('suggested_action', '')}"
                 + (f"\n  Tickers: {tickers}" if tickers else "")
@@ -109,13 +109,13 @@ def get_recent_news(min_score: int = 5, limit: int = 5) -> str:
         elif score >= 7:
             # Medium — title + impact
             lines.append(
-                f"[{score}/10] {a['title']}\n"
+                f"*[{score}/10] {a['title']}*\n"
                 f"  _{a.get('portfolio_impact', '')}_"
                 + (f"\n  Tickers: {tickers}" if tickers else "")
             )
         else:
             # Score 5-6 — title only
-            lines.append(f"[{score}/10] {a['title']}")
+            lines.append(f"*[{score}/10]* {a['title']}")
     return "\n\n".join(lines)
 
 
@@ -135,7 +135,7 @@ def get_news_by_topic(topic: str) -> str:
 
     lines = [f"📰 *News: {topic}*", "━━━━━━━━━━━━━━━━━━━"]
     for a in matches[:5]:
-        parts = [f"[{a['score']}/10] {a['title']}"]
+        parts = [f"*[{a['score']}/10] {a['title']}*"]
         if a.get("summary"):
             parts.append(f"  _{a['summary'][:300]}_")
         if a.get("portfolio_impact"):
@@ -152,7 +152,7 @@ def get_recent_alerts() -> str:
         return "No high-score alerts in the last 48 hours."
     lines = [f"🚨 *Recent Alerts* (score ≥7, last 48h)", "━━━━━━━━━━━━━━━━━━━"]
     for a in articles:
-        lines.append(f"[{a['score']}/10] {a['title']}")
+        lines.append(f"*[{a['score']}/10] {a['title']}*")
     return "\n".join(lines)
 
 

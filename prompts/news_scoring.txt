@@ -38,8 +38,14 @@ SCORING RUBRIC (1-10):
 1-2: No relevance to portfolio or markets
 3-4: General market news, no actionable signal
 5-6: Relevant to a sector/theme the portfolio is exposed to, moderate signal
-7-8: Directly impacts portfolio holdings or a key macro factor, actionable
+7: Reserved — a SPECIFIC holding is named or unmistakably affected, AND the news changes near-term outlook (e.g. guidance revision, contract win/loss, regulatory ruling). Sector rotation or vague macro correlation is NOT enough for 7.
+8: Same as 7, but with clear price-moving magnitude (>3% expected move) or multiple holdings affected simultaneously
 9-10: Critical — earnings surprise, regulatory action, geopolitical escalation directly affecting holdings, or kill switch triggered
+
+IMPORTANT — SCORE DISCIPLINE:
+- Most articles should score 5-6. A score of 7+ should be uncommon (~10-15% of scored articles).
+- Do NOT round up to 7. If you are unsure between 6 and 7, choose 6.
+- A 7 requires you to name the specific ticker(s) affected and explain the concrete catalyst. "Could affect AI stocks" is a 5-6, not a 7.
 
 TRUST ADJUSTMENT:
 - If source is flagged as "editorial" (e.g., ZeroHedge), cap score at 7 unless corroborated
