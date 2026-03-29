@@ -95,8 +95,8 @@ class TestQuoteMessageReturnsNone:
     def test_returns_string_on_valid_ticker(self):
         mod = self._import_stock_price()
         mod.stock_data.get_quote.return_value = {"price": 150.0, "name": "Test Corp", "change_pct": 1.5}
-        mod.config_loader.theses.return_value = {}
-        result = mod.get_quote_message("TEST")
+        with patch.object(mod.config_loader, "theses", return_value={}):
+            result = mod.get_quote_message("TEST")
         assert result is not None
         assert "TEST" in result
 
