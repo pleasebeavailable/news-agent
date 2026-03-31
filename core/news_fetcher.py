@@ -192,6 +192,7 @@ def fetch_research_urls() -> list[dict]:
 GEO_SOURCES = {"Al Jazeera English", "BBC World", "Guardian World"}
 
 _MAX_GEO_BYPASS = 15  # max articles per geo source that bypass keyword filter
+_MAX_ARTICLE_AGE_HOURS = 6  # skip articles older than this (when published_at is known)
 
 
 def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
@@ -229,6 +230,13 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
             # Dedup by title similarity
             if _title_seen(title, seen_titles):
                 continue
+
+            # Filter stale articles — skip if published date is known and too old
+            pub = _parse_date(entry)
+            if pub is not None:
+                age_hours = (datetime.now(timezone.utc) - datetime.fromisoformat(pub)).total_seconds() / 3600
+                if age_hours > _MAX_ARTICLE_AGE_HOURS:
+                    continue
 
             # Keyword filter — skip if no match at all
             combined = f"{title} {summary}"
