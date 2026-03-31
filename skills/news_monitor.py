@@ -55,6 +55,7 @@ def _format_alert(article: dict) -> str:
         ts = datetime.fromisoformat(article["published_at"]).astimezone().strftime("%H:%M")
     except (KeyError, TypeError, ValueError):
         ts = datetime.now().strftime("%H:%M")
+    safe_title = article['title'].replace('*', '')
 
     if score >= 9:
         # High importance — full detail
@@ -62,7 +63,7 @@ def _format_alert(article: dict) -> str:
         return (
             f"🚨 *ALERT* (Score: {score}/10) — {ts}\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
-            f"📰 *{article['title']}*\n"
+            f"📰 *{safe_title}*\n"
             f"📡 Source: {article['source']} (Tier {article.get('source_tier', '?')})\n\n"
             f"*What happened:*\n{article.get('summary', '')}\n\n"
             f"*Portfolio impact:*\n{article.get('portfolio_impact', 'n/a')}\n\n"
@@ -74,7 +75,7 @@ def _format_alert(article: dict) -> str:
     # Score 7-8 — short format
     kill = "\n⚠️ *Kill switch*" if article.get("kill_switch_triggered") else ""
     return (
-        f"📰 {ts} [{score}/10] *{article['title']}*\n"
+        f"📰 {ts} [{score}/10] *{safe_title}*\n"
         f"💡 {article.get('portfolio_impact', 'n/a')}"
         f"{kill}"
     )

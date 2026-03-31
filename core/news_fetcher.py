@@ -256,7 +256,7 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
                 "title": title,
                 "url": url,
                 "summary": summary[:500],
-                "published_at": _parse_date(entry),
+                "published_at": pub,
                 "matched_keywords": matched_terms,
                 "matched_groups": matched_groups,
             })
