@@ -81,7 +81,7 @@ def generate_summary() -> str:
     prompt = prompt.replace("{date_range}", data["date_range"])
 
     messages = [{"role": "user", "content": prompt}]
-    return llm_client.chat(messages, temperature=0.4, max_tokens=4096)
+    return llm_client.chat(messages, temperature=0.4, max_tokens=2048)
 
 
 def send_weekly_summary():
