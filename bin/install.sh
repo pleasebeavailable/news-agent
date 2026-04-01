@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-INSTALL_DIR="$HOME/openclaw-agent"
+INSTALL_DIR="$HOME/agents/openclaw-agent"
 TMP_DIR="/tmp/openclaw"
 PLIST_NAME="com.nvidia.nemoclaw"
 PLIST_SRC="$INSTALL_DIR/$PLIST_NAME.plist"
@@ -332,7 +332,7 @@ fi
 # No setup needed here — deploy.sh handles .env creation on the sandbox
 if should_run 8; then
   echo "[8/9] Telegram bot — no local setup needed."
-  echo "  Run: bash ~/openclaw-agent/deploy.sh"
+  echo "  Run: bash ~/agents/openclaw-agent/deploy.sh"
   ok "Skipped (handled by deploy.sh)"
 fi
 
@@ -353,8 +353,8 @@ echo ""
 nemoclaw status 2>&1 | sed 's/^/  /' || true
 echo ""
 echo "Next steps:"
-echo "  1. bash ~/openclaw-agent/deploy.sh   (push code to sandbox)"
+echo "  1. bash ~/agents/openclaw-agent/deploy.sh   (push code to sandbox)"
 echo "  2. nemoclaw $SANDBOX_NAME connect"
 echo "  3. start                             (launch bot — survives SSH disconnect)"
 echo "  4. tail -f /tmp/nemoclaw.log         (watch logs)"
-echo "  See ~/openclaw-agent/test-commands.md for verification commands"
+echo "  See ~/agents/openclaw-agent/test-commands.md for verification commands"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Pull logs from sandbox into local logs/ folder.
-# Usage: bash ~/openclaw-agent/bin/fetch-log [--follow] [CATEGORY]
+# Usage: bash ~/agents/openclaw-agent/bin/fetch-log [--follow] [CATEGORY]
 #
 # Categories: app, news, llm, geo, all (default)
 # Examples:

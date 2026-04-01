@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Deploy Phase 2 code to sandbox.
-# Usage:  bash ~/openclaw-agent/bin/deploy.sh
+# Usage:  bash ~/agents/openclaw-agent/bin/deploy.sh
 
 set -euo pipefail
 

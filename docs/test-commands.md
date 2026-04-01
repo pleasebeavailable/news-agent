@@ -120,7 +120,7 @@ DEBUG core.news_store — get_recent(16h, score>=5) → N articles
 
 ```bash
 # From Mac — deploy latest code
-bash ~/openclaw-agent/deploy.sh
+bash ~/agents/openclaw-agent/deploy.sh
 
 # On sandbox — restart
 start

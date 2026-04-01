@@ -12,11 +12,11 @@
         <string>/Users/antesucue/.npm-global/bin/nemoclaw</string>
         <string>run</string>
         <string>--config</string>
-        <string>/Users/antesucue/openclaw-agent/config.yaml</string>
+        <string>/Users/antesucue/agents/openclaw-agent/config.yaml</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/antesucue/openclaw-agent</string>
+    <string>/Users/antesucue/agents/openclaw-agent</string>
 
     <key>RunAtLoad</key>
     <true/>
@@ -32,10 +32,10 @@
     <integer>10</integer>
 
     <key>StandardOutPath</key>
-    <string>/Users/antesucue/openclaw-agent/launchd-stdout.log</string>
+    <string>/Users/antesucue/agents/openclaw-agent/launchd-stdout.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/antesucue/openclaw-agent/launchd-stderr.log</string>
+    <string>/Users/antesucue/agents/openclaw-agent/launchd-stderr.log</string>
 
     <key>EnvironmentVariables</key>
     <dict>

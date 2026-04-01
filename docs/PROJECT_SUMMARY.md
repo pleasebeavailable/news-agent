@@ -128,7 +128,7 @@ All modules have structured logging to `/tmp/nemoclaw.log`:
 
 ## Infrastructure
 
-- **Deploy:** `bash ~/openclaw-agent/deploy.sh` from Mac
+- **Deploy:** `bash ~/agents/openclaw-agent/deploy.sh` from Mac
 - **Start:** `start` on sandbox — uses `nohup`, survives SSH disconnects
 - **Logs:** `/tmp/nemoclaw.log` — `tail -f /tmp/nemoclaw.log`
 - **Stop:** `kill $(cat /tmp/nemoclaw.lock)`

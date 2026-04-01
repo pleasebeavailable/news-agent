@@ -4,8 +4,8 @@
 
 agent:
   name: "nemoclaw-macos"
-  workspace: "~/openclaw-agent/"
-  sandbox_policy: "~/openclaw-agent/sandbox-policy.yaml"
+  workspace: "~/agents/openclaw-agent/"
+  sandbox_policy: "~/agents/openclaw-agent/sandbox-policy.yaml"
 
 inference:
   # Phase 2 uses sandbox inference at inference.local/v1 (not this config)

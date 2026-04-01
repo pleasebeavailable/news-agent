@@ -62,7 +62,7 @@ nemoclaw onboard
 
 - When prompted for sandbox name, enter: `<sandbox-name>`
 - Choose **Nemotron 3 Super 120B** when prompted for model
-- If step 6 fails with "sandbox not found": run `openshell sandbox create --name <sandbox-name>`, then `bash ~/openclaw-agent/bin/install.sh --from-step 7`
+- If step 6 fails with "sandbox not found": run `openshell sandbox create --name <sandbox-name>`, then `bash ~/agents/openclaw-agent/bin/install.sh --from-step 7`
 - Let it fully complete — do not Ctrl+C
 
 > **WARNING:** `nemoclaw onboard` always does a FULL reset — it destroys the existing
@@ -132,7 +132,7 @@ openclaw --version   # verify
 ### 6. Deploy (one command does everything)
 
 ```bash
-bash ~/openclaw-agent/bin/deploy.sh
+bash ~/agents/openclaw-agent/bin/deploy.sh
 ```
 
 This automatically:
@@ -166,7 +166,7 @@ tail -f /tmp/nemoclaw.log
 After code changes, from your Mac:
 
 ```bash
-bash ~/openclaw-agent/bin/deploy.sh
+bash ~/agents/openclaw-agent/bin/deploy.sh
 ```
 
 Then on the sandbox:
@@ -248,7 +248,7 @@ Startup:
 
 ## Sandbox network policy
 
-Policy file: `~/openclaw-agent/bin/sandbox-policy.yaml`
+Policy file: `~/agents/openclaw-agent/bin/sandbox-policy.yaml`
 Applied automatically by `deploy.sh`.
 
 **Important:** The network policy controls which binaries can reach which external hosts.
@@ -298,7 +298,7 @@ in `bin/sandbox-policy.yaml`.
 
 To manually apply/update policy:
 ```bash
-openshell policy set --policy ~/openclaw-agent/bin/sandbox-policy.yaml <sandbox-name> --wait
+openshell policy set --policy ~/agents/openclaw-agent/bin/sandbox-policy.yaml <sandbox-name> --wait
 ```
 
 ### Adding a new RSS feed or research source
@@ -312,7 +312,7 @@ Checklist:
 2. Extract the hostname: `python3 -c "from urllib.parse import urlparse; print(urlparse('THE_URL').hostname)"`
 3. Add `- host: <hostname>` + `port: 443` under `rss_feeds.endpoints` in `bin/sandbox-policy.yaml`
 4. If the feed is a geo source, add `geo: true` to the YAML entry and add the feed name to `GEO_SOURCES` in `core/news_fetcher.py`
-5. Deploy: `bash ~/openclaw-agent/bin/deploy.sh` (re-applies policy automatically)
+5. Deploy: `bash ~/agents/openclaw-agent/bin/deploy.sh` (re-applies policy automatically)
 
 ---
 
@@ -335,7 +335,7 @@ Or just: `bash /sandbox/workspace/start`
 **Telegram/Yahoo/RSS 403 proxy errors**
 1. Check policy is applied: `openshell policy get <sandbox-name>`
 2. Check binary matches: `readlink -f /sandbox/.venv/bin/python3` — must match a `binaries` glob in policy
-3. Re-apply: `openshell policy set --policy ~/openclaw-agent/bin/sandbox-policy.yaml <sandbox-name> --wait`
+3. Re-apply: `openshell policy set --policy ~/agents/openclaw-agent/bin/sandbox-policy.yaml <sandbox-name> --wait`
 4. After sandbox rebuild, policy is wiped — `deploy.sh` re-applies it automatically
 
 **LLM calls fail (403 Forbidden from inference.local)**
@@ -380,7 +380,7 @@ This is almost always an inference provider/routing issue, NOT a network policy 
 6. Nuclear option — full re-onboard (destroys everything):
    ```bash
    nemoclaw onboard
-   bash ~/openclaw-agent/bin/deploy.sh
+   bash ~/agents/openclaw-agent/bin/deploy.sh
    ```
 
 **LLM returns empty response (0 chars, finish=length)**
@@ -402,8 +402,8 @@ Then re-onboard and deploy.
 The sandbox name exists in config but the container is gone.
 ```bash
 openshell sandbox create --name <sandbox-name>
-bash ~/openclaw-agent/bin/install.sh --from-step 7
-bash ~/openclaw-agent/bin/deploy.sh
+bash ~/agents/openclaw-agent/bin/install.sh --from-step 7
+bash ~/agents/openclaw-agent/bin/deploy.sh
 ```
 
 **pip / ModuleNotFoundError**
@@ -411,11 +411,11 @@ Dependencies not installed. Run on sandbox:
 ```bash
 /sandbox/.venv/bin/pip install -r /sandbox/workspace/requirements.txt
 ```
-Or re-deploy: `bash ~/openclaw-agent/bin/deploy.sh` (installs deps automatically).
+Or re-deploy: `bash ~/agents/openclaw-agent/bin/deploy.sh` (installs deps automatically).
 
 **`.env` missing / TELEGRAM_BOT_TOKEN not set**
 ```bash
-bash ~/openclaw-agent/bin/deploy.sh    # uploads .env from local repo
+bash ~/agents/openclaw-agent/bin/deploy.sh    # uploads .env from local repo
 ```
 
 **Log flooding (same error repeating fast)**
