@@ -6,6 +6,18 @@ from core import news_store, news_fetcher, news_scorer, llm_client, telegram_bot
 
 logger = logging.getLogger(__name__)
 
+# ── Skill metadata (auto-discovery) ──────────────────────────────────
+COMMANDS = [
+    {"type": "exact", "pattern": "geo", "call": "get_geo_brief"},
+    {"type": "exact", "pattern": "geopolitical", "call": "get_geo_brief"},
+    {"type": "exact", "pattern": "geopolitics", "call": "get_geo_brief"},
+]
+SCHEDULE = [
+    {"func": "run_geo_scan", "interval": "geo_poll_minutes", "default": 20},
+]
+HELP_ORDER = 3
+HELP = "*Geopolitics*\n`geo` — geopolitical brief from recent news"
+
 
 def _article_date(a: dict) -> str:
     raw = a.get("published_at") or a.get("fetched_at") or ""

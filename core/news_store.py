@@ -110,7 +110,7 @@ def get_recent_titles(since_hours: int = 48) -> list[str]:
     with _conn() as conn:
         rows = conn.execute(
             "SELECT title FROM scored_news WHERE fetched_at >= ?",
-            (since.isoformat(),),
+            (since.strftime("%Y-%m-%d %H:%M:%S"),),
         ).fetchall()
     return [r["title"] for r in rows]
 
@@ -123,7 +123,7 @@ def get_recent(since_hours: int = 16, min_score: int = 5, limit: int = 10) -> li
             WHERE fetched_at >= ? AND score >= ?
             ORDER BY score DESC, fetched_at DESC
             LIMIT ?
-        """, (since.isoformat(), min_score, limit)).fetchall()
+        """, (since.strftime("%Y-%m-%d %H:%M:%S"), min_score, limit)).fetchall()
     results = [dict(r) for r in rows]
     logger.debug("get_recent(%dh, score>=%d) → %d articles", since_hours, min_score, len(results))
     return results

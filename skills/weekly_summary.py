@@ -13,6 +13,21 @@ from skills.earnings import get_upcoming_earnings
 
 logger = logging.getLogger(__name__)
 
+# ── Skill metadata (auto-discovery) ──────────────────────────────────
+COMMANDS = [
+    {"type": "exact", "pattern": "weekly summary", "call": "send_weekly_summary",
+     "thread": True, "ack": "Generating weekly summary..."},
+    {"type": "exact", "pattern": "summary", "call": "send_weekly_summary",
+     "thread": True, "ack": "Generating weekly summary..."},
+    {"type": "exact", "pattern": "saturday brief", "call": "send_weekly_summary",
+     "thread": True, "ack": "Generating weekly summary..."},
+]
+SCHEDULE = [
+    {"func": "send_weekly_summary", "days": ["saturday"], "at": "07:00"},
+]
+HELP_ORDER = 1
+HELP = "`weekly summary` — run weekly summary now"
+
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "weekly_summary.txt"
 
 _BRIEF_FIELDS = ("title", "score", "source", "affected_tickers", "summary", "published_at")
@@ -72,7 +87,7 @@ def generate_summary() -> str:
     prompt = prompt.replace("{date_range}", data["date_range"])
 
     messages = [{"role": "user", "content": prompt}]
-    return llm_client.chat(messages, temperature=0.4, max_tokens=4096)
+    return llm_client.chat(messages, temperature=0.4, max_tokens=2048)
 
 
 def send_weekly_summary():
