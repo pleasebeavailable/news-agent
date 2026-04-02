@@ -3,3 +3,4 @@ feedparser
 pyyaml
 schedule
 requests
+tavily-python

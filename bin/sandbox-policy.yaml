@@ -222,6 +222,22 @@ network_policies:
     - path: /sandbox/.uv/python/**
     - path: /usr/bin/python3
 
+  tavily:
+    name: tavily
+    endpoints:
+    - host: api.tavily.com
+      port: 443
+      protocol: rest
+      enforcement: enforce
+      tls: terminate
+      rules:
+      - allow: { method: POST, path: "/**" }
+    binaries:
+    - path: /sandbox/.venv/bin/python3
+    - path: /sandbox/.venv/bin/python
+    - path: /sandbox/.uv/python/**
+    - path: /usr/bin/python3
+
   rss_feeds:
     name: rss-feeds
     endpoints:

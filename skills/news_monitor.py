@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def run_news_cycle():
     """Fetch → score → store → alert. Call this on a schedule (e.g. every 15 min)."""
     try:
-        articles = news_fetcher.fetch_all() + news_fetcher.fetch_research_urls()
+        articles = news_fetcher.fetch_all() + news_fetcher.fetch_research_urls() + news_fetcher.fetch_tavily()
         if not articles:
             logger.info("News cycle: no new articles from any feed")
             return
