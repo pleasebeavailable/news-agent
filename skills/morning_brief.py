@@ -41,7 +41,7 @@ def _article_date(a: dict) -> str:
 def assemble_data() -> dict:
     wl = config_loader.watchlist()
     alerts_cfg = config_loader.alerts_config()
-    raw_news = news_store.get_recent(since_hours=16, min_score=6, limit=10)
+    raw_news = news_store.get_recent(since_hours=6, min_score=6, limit=10)
     # Stamp each article with its date so LLM knows article age
     dated_news = [{**_slim(a), "title": f"[{_article_date(a)}] {a.get('title', '')}"} for a in raw_news]
     return {
