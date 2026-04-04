@@ -25,15 +25,6 @@ def _article_date(a: dict) -> str:
 
 _GEO_CATEGORIES = {"geopolitics", "china", "macro"}
 
-_PORTFOLIO_GEO_CONTEXT = (
-    "Portfolio geo exposures: "
-    "BABA/2689.HK — US-China binary risk (delisting, tariffs, regulatory thaw); "
-    "NVDA/NBIS/MRVL/GLW — export controls, chip ban, CHIPS Act; "
-    "PBR/VALE — Brazil macro, Lula policy, commodity demand from China; "
-    "BMNR/HOOD/ORBS — crypto regulation, SEC, stablecoin legislation; "
-    "FLOW.AS — vol exposure to geopolitical shocks."
-)
-
 
 def _get_recent_geo_news(since_hours: int = 30, min_score: int = 5) -> list[dict]:
     articles = news_store.get_recent(since_hours=since_hours, min_score=min_score, limit=30)
@@ -42,6 +33,7 @@ def _get_recent_geo_news(since_hours: int = 30, min_score: int = 5) -> list[dict
 
 def get_geo_brief() -> str:
     """On-demand: return a geopolitical brief from recent scored news."""
+    from core import config_loader
     articles = _get_recent_geo_news(since_hours=48, min_score=4)
     if not articles:
         logger.info("get_geo_brief: no geo articles found (48h, score>=4)")
@@ -52,11 +44,12 @@ def get_geo_brief() -> str:
         f"[{_article_date(a)}] [{a['score']}/10] [{a.get('category','?').upper()}] {a['title']} — {a.get('portfolio_impact','')}"
         for a in articles[:8]
     )
+    geo_context = config_loader.portfolio_geo_context()
 
     prompt = (
         f"Today is {today}. You are a geopolitical risk analyst. Synthesize these recent news items into a "
         f"brief geopolitical situational report for an investor.\n\n"
-        f"{_PORTFOLIO_GEO_CONTEXT}\n\n"
+        f"{geo_context}\n\n"
         f"RECENT GEO NEWS (last 48h):\n{headlines}\n\n"
         f"FORMAT:\n"
         f"🌍 *Geo Brief*\n"

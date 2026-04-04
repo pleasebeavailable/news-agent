@@ -25,8 +25,8 @@ COMMANDS = [
 SCHEDULE = [
     {"func": "send_weekly_summary", "days": ["saturday"], "at": "07:00"},
 ]
-HELP_ORDER = 1
-HELP = "`weekly summary` — run weekly summary now"
+HELP_ORDER = 0
+HELP = None
 
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "weekly_summary.txt"
 
@@ -82,7 +82,8 @@ def generate_summary() -> str:
     data = assemble_data()
     theses = config_loader.theses()
 
-    prompt = template.replace("{assembled_data_json}", json.dumps(data, default=str))
+    prompt = template.replace("{portfolio_context}", config_loader.portfolio_scoring_context())
+    prompt = prompt.replace("{assembled_data_json}", json.dumps(data, default=str))
     prompt = prompt.replace("{theses_yaml}", yaml.dump(theses, default_flow_style=False))
     prompt = prompt.replace("{date_range}", data["date_range"])
 

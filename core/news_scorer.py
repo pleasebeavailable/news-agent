@@ -3,7 +3,7 @@
 import logging
 from pathlib import Path
 
-from core import llm_client
+from core import llm_client, config_loader
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,11 @@ def _prompt() -> str:
 
 def score_article(article: dict) -> dict | None:
     """Score a single article. Returns the article dict enriched with score fields, or None on failure."""
-    prompt = _prompt().format(
+    # Inject portfolio context via replace() before .format() to avoid brace conflicts in thesis text
+    portfolio_ctx = config_loader.portfolio_scoring_context()
+    safe_ctx = portfolio_ctx.replace("{", "{{").replace("}", "}}")
+    raw = _prompt().replace("{portfolio_context}", safe_ctx)
+    prompt = raw.format(
         source_name=article["source"],
         source_tier=article["source_tier"],
         title=article["title"],

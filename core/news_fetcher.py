@@ -36,6 +36,11 @@ def _keywords() -> dict:
     if _keywords_cache is None:
         with open(KEYWORDS_PATH) as f:
             _keywords_cache = yaml.safe_load(f)
+        from core import config_loader
+        _keywords_cache["keyword_groups"]["portfolio_tickers"] = {
+            "weight": 2.5,
+            "terms": config_loader.portfolio_keyword_terms(),
+        }
     return _keywords_cache
 
 

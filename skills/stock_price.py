@@ -15,7 +15,7 @@ COMMANDS = [
 ]
 HELP_ORDER = 2
 HELP = (
-    "*Portfolio*\n"
+    "*Prices*\n"
     "`watchlist` — live prices for all positions\n"
     "`portfolio` — positions with themes & P&L\n"
     "`NVDA` — quote for any ticker\n"
