@@ -2,6 +2,7 @@
 
 import json
 import logging
+from datetime import datetime
 
 from core import news_fetcher, news_scorer, news_store, telegram_bot, config_loader
 
@@ -45,10 +46,20 @@ def run_news_cycle():
         alerts_cfg = config_loader.alerts_config()
         immediate_threshold = alerts_cfg.get("news_score_immediate", 7)
 
+        alerted_tickers: set[str] = set()
         for article in scored:
             news_store.save_article(article)
 
             if article["score"] >= immediate_threshold:
+                tickers = set(article.get("affected_tickers") or [])
+                if tickers and tickers & alerted_tickers:
+                    logger.info(
+                        "Skipping duplicate ticker alert for: %s (tickers: %s already alerted)",
+                        article["title"][:60],
+                        tickers & alerted_tickers,
+                    )
+                    continue
+                alerted_tickers.update(tickers)
                 msg = _format_alert(article)
                 telegram_bot.send(msg)
                 logger.info(f"Alert sent for: {article['title'][:60]}")
@@ -63,14 +74,19 @@ def run_news_cycle():
 def _format_alert(article: dict) -> str:
     tickers = ", ".join(article.get("affected_tickers") or [])
     score = article["score"]
+    try:
+        ts = datetime.fromisoformat(article["published_at"]).astimezone().strftime("%H:%M")
+    except (KeyError, TypeError, ValueError):
+        ts = datetime.now().strftime("%H:%M")
+    safe_title = article['title'].replace('*', '')
 
     if score >= 9:
         # High importance — full detail
         kill = "⚠️ *Kill switch proximity detected*\n" if article.get("kill_switch_triggered") else ""
         return (
-            f"🚨 *ALERT* (Score: {score}/10)\n"
+            f"🚨 *ALERT* (Score: {score}/10) — {ts}\n"
             f"━━━━━━━━━━━━━━━━━━━\n"
-            f"📰 {article['title']}\n"
+            f"📰 *{safe_title}*\n"
             f"📡 Source: {article['source']} (Tier {article.get('source_tier', '?')})\n\n"
             f"*What happened:*\n{article.get('summary', '')}\n\n"
             f"*Portfolio impact:*\n{article.get('portfolio_impact', 'n/a')}\n\n"
