@@ -39,7 +39,7 @@ log -f geo 50    # last 50 geo lines + follow
 ## Critical landmines
 
 - **Prompt template braces**: templates use `{var}` for Python `.format()`. Literal JSON braces in prompt .txt files MUST be escaped as `{{ }}` or scoring crashes.
-- **Timezone mismatch**: `news_store` writes with `CURRENT_TIMESTAMP` (UTC) but `get_recent()` queries with `datetime.now()` (local time). Known issue — don't make it worse.
+- **Timezone**: all `news_store` queries use `datetime.now(timezone.utc)` — consistent with `CURRENT_TIMESTAMP` (UTC). Resolved.
 - **Telegram Markdown**: uses legacy `parse_mode="Markdown"` (not MarkdownV2). Escape `_` and `*` in dynamic content. Do NOT switch to MarkdownV2 — would break all format strings.
 - **Sandbox restrictions**: no sudo, no tmux, no ps/pkill, restricted network via L7 proxy with hostname allowlist.
 - **New RSS feed = policy update**: adding a feed requires adding its hostname to `bin/sandbox-policy.yaml` and redeploying with `openshell policy set`.
@@ -50,7 +50,7 @@ log -f geo 50    # last 50 geo lines + follow
 - **LLM client**: `llm_client.chat()` retries 3x with backoff [5s, 15s, 30s], 90s timeout. `json_chat()` strips markdown fences before JSON parse.
 - **Single instance**: enforced via `/tmp/nemoclaw.lock` (fcntl.flock + PID file).
 - **Config hot-reload**: `config_loader.reload_all()` re-reads all YAML at runtime.
-- **News pipeline**: fetch -> dedup (URL + fuzzy title 0.85) -> keyword filter -> LLM score -> store (SQLite) -> alert (Telegram).
+- **News pipeline**: fetch (skip if >6h old) -> dedup (URL + fuzzy title 0.85) -> keyword filter -> LLM score -> store (SQLite) -> alert (Telegram, skip if title fuzzy-matches a recent alert at 0.75).
 - **Geo sources** (Al Jazeera, BBC World, Guardian World): bypass keyword filtering with 15-article cap.
 - **Score thresholds**: save if >= 5, alert if >= 7, editorial sources capped at 7.
 - **Scheduler**: `schedule` library, 30s tick in background thread. News every 60 min, geo every 20 min, morning brief weekdays 07:00 CET, weekly Saturday 07:00 CET.

@@ -553,7 +553,7 @@ class TestGeoBypassCap:
              patch("core.news_fetcher.url_exists", return_value=False), \
              patch("core.news_fetcher.get_recent_titles", return_value=[]), \
              patch("core.news_fetcher._match_keywords", return_value=([], [])), \
-             patch("core.news_fetcher._title_seen", return_value=False), \
+             patch("core.news_fetcher.title_seen", return_value=False), \
              patch("core.news_fetcher._sources", return_value={
                  "rss_feeds": [{"name": "Al Jazeera English", "url": "http://fake", "tier": 1}]
              }):

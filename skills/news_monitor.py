@@ -4,6 +4,8 @@ import json
 import logging
 
 from core import news_fetcher, news_scorer, news_store, telegram_bot, config_loader
+from core.news_fetcher import title_seen
+from core.news_store import get_recent_alerted_titles
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +47,27 @@ def run_news_cycle():
         alerts_cfg = config_loader.alerts_config()
         immediate_threshold = alerts_cfg.get("news_score_immediate", 7)
 
+        alerted_titles = get_recent_alerted_titles(since_hours=24)
+
         for article in scored:
-            news_store.save_article(article)
+            article_id = news_store.save_article(article)
 
             if article["score"] >= immediate_threshold:
+                if title_seen(article["title"], alerted_titles, threshold=0.75):
+                    logger.info("Suppressed duplicate alert: %s", article["title"][:60])
+                    continue
+
+                if not article_id:
+                    logger.warning("Skipping alert — could not save/identify article: %s", article["title"][:60])
+                    continue
+                if not news_store.try_mark_alerted(article_id):
+                    logger.info("Race-condition skip (already alerted): %s", article["title"][:60])
+                    continue
+
                 msg = _format_alert(article)
                 telegram_bot.send(msg)
-                logger.info(f"Alert sent for: {article['title'][:60]}")
+                alerted_titles.append(article["title"])
+                logger.info("Alert sent for: %s", article["title"][:60])
     except Exception as e:
         logger.error(f"News cycle failed: {e}")
         try:

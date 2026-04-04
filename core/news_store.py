@@ -50,10 +50,11 @@ def init_db():
         """)
 
 
-def save_article(article: dict):
+def save_article(article: dict) -> int | None:
+    """Save article. Returns the row id (new or existing), or None on error."""
     try:
         with _conn() as conn:
-            conn.execute("""
+            cur = conn.execute("""
                 INSERT OR IGNORE INTO scored_news
                   (source, source_tier, title, url, published_at,
                    matched_keywords, matched_groups, score, category,
@@ -76,9 +77,19 @@ def save_article(article: dict):
                 article.get("suggested_action"),
                 article.get("confidence"),
             ))
-        logger.debug("saved: [%d] %s", article["score"], article["title"][:80])
+            if cur.lastrowid:
+                logger.debug("saved: [%d] %s", article["score"], article["title"][:80])
+                return cur.lastrowid
+            # Row already existed (INSERT OR IGNORE skipped) — look up by URL
+            url = article.get("url")
+            if url:
+                row = conn.execute("SELECT id FROM scored_news WHERE url=?", (url,)).fetchone()
+                if row:
+                    return row["id"]
+            return None
     except Exception as e:
         logger.error("failed to save article '%s': %s", article.get("title", "?")[:60], e)
+        return None
 
 
 def url_exists(url: str) -> bool:
@@ -110,6 +121,17 @@ def get_recent_titles(since_hours: int = 48) -> list[str]:
     with _conn() as conn:
         rows = conn.execute(
             "SELECT title FROM scored_news WHERE fetched_at >= ?",
+            (since.strftime("%Y-%m-%d %H:%M:%S"),),
+        ).fetchall()
+    return [r["title"] for r in rows]
+
+
+def get_recent_alerted_titles(since_hours: int = 24) -> list[str]:
+    """Return titles of articles that were already alerted in the last *since_hours*."""
+    since = datetime.now(timezone.utc) - timedelta(hours=since_hours)
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT title FROM scored_news WHERE alerted=1 AND fetched_at >= ?",
             (since.strftime("%Y-%m-%d %H:%M:%S"),),
         ).fetchall()
     return [r["title"] for r in rows]
