@@ -165,6 +165,7 @@ class TestHelpText:
 
     def test_help_contains_all_sections(self):
         text = main._help_text()
+        assert "*Prices*" in text
         assert "*Portfolio*" in text
         assert "*News*" in text
         assert "*Geopolitics*" in text
@@ -177,10 +178,11 @@ class TestHelpText:
         """Sections should appear in HELP_ORDER sequence."""
         text = main._help_text()
         briefs_pos = text.index("*Briefs*")
-        portfolio_pos = text.index("*Portfolio*")
+        prices_pos = text.index("*Prices*")
         geo_pos = text.index("*Geopolitics*")
         news_pos = text.index("*News*")
         earnings_pos = text.index("*Earnings*")
         research_pos = text.index("*Research*")
+        portfolio_pos = text.index("*Portfolio*")
         system_pos = text.index("*System*")
-        assert briefs_pos < portfolio_pos < geo_pos < news_pos < earnings_pos < research_pos < system_pos
+        assert briefs_pos < prices_pos < geo_pos < news_pos < earnings_pos < research_pos < portfolio_pos < system_pos
