@@ -1,0 +1,198 @@
+You are helping build a new skill for NemoClaw — a personal portfolio intelligence Telegram bot.
+
+## Project layout
+
+- `main.py` — Telegram poll loop + scheduler + skill router (auto-discovers skills)
+- `core/` — shared modules (see below)
+- `skills/` — one file per skill, auto-discovered at startup
+- `prompts/` — LLM prompt templates (.txt with `{placeholder}` variables)
+- `config/` — portfolio.yaml, theses.yaml, keywords.yaml, news_sources.yaml
+- `data/` — news_log.db (SQLite, WAL mode)
+
+## Core modules available to skills
+
+```python
+from core import config_loader   # portfolio data
+from core import llm_client      # LLM calls
+from core import telegram_bot    # send messages
+from core import news_store      # query scored news DB
+from core import stock_data      # yfinance wrappers
+```
+
+### config_loader functions
+```python
+config_loader.watchlist()              # list[dict] — portfolio positions
+config_loader.theses()                 # dict — ticker → {thesis, kill, stance, strategy}
+config_loader.alerts_config()          # dict — alert thresholds
+config_loader.schedule_config()        # dict — schedule overrides
+config_loader.portfolio_keyword_terms()   # list[str] — tickers + company names
+config_loader.portfolio_scoring_context() # str — PORTFOLIO HOLDINGS + THESIS DRIVERS + KILL SWITCHES
+config_loader.portfolio_geo_context()     # str — geo-risk string grouped by theme
+config_loader.reload_all()             # hot-reload all YAML configs
+```
+
+### news_store functions
+```python
+news_store.get_recent(since_hours=24, min_score=5, limit=20)
+# Returns list[dict] with keys:
+#   title, score, source, source_tier, category, affected_tickers,
+#   summary, portfolio_impact, suggested_action, published_at, fetched_at
+```
+
+### llm_client functions
+```python
+llm_client.chat(messages, temperature=0.4, max_tokens=1024)    # → str
+llm_client.json_chat(messages, temperature=0.1, max_tokens=2048)  # → dict (parses JSON)
+# messages = [{"role": "user", "content": "..."}]
+# Retries 3x with backoff [5s, 15s, 30s]. 90s timeout.
+```
+
+### telegram_bot
+```python
+telegram_bot.send(text)   # sends Markdown message to configured chat
+```
+
+### stock_data
+```python
+stock_data.get_futures()                        # → dict
+stock_data.get_premarket_movers(wl, threshold_pct=3.0)  # → list[dict]
+```
+
+## Skill file anatomy
+
+Every skill is a Python module in `skills/`. Auto-discovery reads these module-level constants:
+
+```python
+"""Skill N: Short description."""
+
+import logging
+from core import config_loader, llm_client, telegram_bot
+
+logger = logging.getLogger(__name__)
+
+# ── Required for auto-discovery ──────────────────────────────────────
+COMMANDS = [
+    # exact match (case-insensitive)
+    {"type": "exact", "pattern": "my command", "call": "my_function"},
+    # prefix match — text after prefix passed as argument
+    {"type": "prefix", "pattern": "my command ", "call": "my_function_with_arg"},
+    # regex match — group(1) passed as argument
+    {"type": "regex", "pattern": r"(?i)my pattern (\w+)", "call": "my_function_with_arg", "args": "upper"},
+]
+# args modes: "upper" (uppercase group 1), "raw" (raw group 1), omit for no arg
+
+SCHEDULE = [
+    # interval-based (reads from schedule_config() or uses default)
+    {"func": "my_scheduled_func", "interval": "my_poll_minutes", "default": 60},
+    # time-based (days = list of weekday names, or ["daily"])
+    {"func": "my_daily_func", "days": ["monday", "tuesday", "wednesday", "thursday", "friday"], "at": "07:00"},
+]
+
+HELP_ORDER = 10   # lower = appears higher in help output
+HELP = (
+    "*My Section*\n"
+    "`my command` — what it does\n"
+    "`my command <arg>` — variant with argument"
+)
+# Set HELP = None to hide from help output entirely
+
+# ── Implementation ────────────────────────────────────────────────────
+
+def my_function() -> str:
+    ...
+    return "result text (Telegram Markdown)"
+
+def my_function_with_arg(arg: str) -> str:
+    ...
+    return "result text"
+```
+
+## Prompt template anatomy
+
+If the skill calls the LLM, create `prompts/my_skill.txt`:
+
+```
+You are a [role]. [Task description].
+
+{portfolio_context}
+
+[Other static context]
+
+DATA:
+{data_json}
+
+FORMAT:
+[Exact output format instruction]
+```
+
+Inject in the skill using `.replace()` (NOT `.format()`) for all placeholders:
+```python
+from pathlib import Path
+
+PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "my_skill.txt"
+
+def generate() -> str:
+    with open(PROMPT_PATH) as f:
+        template = f.read()
+    prompt = template.replace("{portfolio_context}", config_loader.portfolio_scoring_context())
+    prompt = prompt.replace("{data_json}", json.dumps(data, default=str))
+    return llm_client.chat([{"role": "user", "content": prompt}], temperature=0.4, max_tokens=1024)
+```
+
+**IMPORTANT — brace escaping**: If the skill uses `.format()` anywhere on the prompt string (not just `.replace()`), you must escape braces in the portfolio context first:
+```python
+safe_ctx = config_loader.portfolio_scoring_context().replace("{", "{{").replace("}", "}}")
+raw = template.replace("{portfolio_context}", safe_ctx)
+prompt = raw.format(other_var=value)
+```
+
+## Critical rules
+
+- **Telegram Markdown**: legacy `parse_mode="Markdown"`. Use `*bold*`, `_italic_`, `` `code` ``. Do NOT use MarkdownV2 syntax.
+- **Synchronous only** — no async/await anywhere.
+- **No new dependencies** without confirming first.
+- **Logging**: module-level `logger = logging.getLogger(__name__)`. Log with `logger.info/warning/error`.
+- **Private functions**: prefix with `_`.
+- **Constants**: UPPERCASE at module level.
+- **Error handling**: wrap LLM calls in try/except, return a user-facing error string.
+- **Scheduled functions** must call `telegram_bot.send()` directly (not return a string).
+- **On-demand functions** (triggered by Telegram command) must return a string.
+
+## Watchlist entry shape (from portfolio.yaml)
+
+```python
+{
+    "ticker": "NVDA",
+    "type": "stock",          # stock | adr | etf
+    "exchange": "NASDAQ",
+    "theme": "AI Infra",      # AI Infra | Crypto | China/EM | Brazil | Vol/Options | Satellite | Other
+    "shares": 100,
+    "cost": 118.50,           # average cost basis
+    "names": ["NVIDIA", "Nvidia"],   # company/brand names used in news headlines
+}
+```
+
+## Theses entry shape (from theses.yaml)
+
+```python
+{
+    "thesis": "GPU monopoly, Vera Rubin H2 2026...",
+    "kill": "Hyperscaler capex pivot, custom ASIC displacing >15% GPU workloads",
+    "stance": "Core position. Hold through volatility...",
+    "strategy": "core_hold",   # core_hold | accumulate | reduce | house_money | lottery | income_hold | lot_reshape | tax_harvest_pending
+}
+```
+
+---
+
+## Your task
+
+Build a new NemoClaw skill with the following description:
+
+[DESCRIBE THE SKILL HERE]
+
+Produce:
+1. `skills/<name>.py` — full implementation following the anatomy above
+2. `prompts/<name>.txt` — LLM prompt template (if the skill uses the LLM)
+
+Follow all rules above exactly. Do not add type annotations or docstrings to functions. Do not add async. Do not add retry logic.

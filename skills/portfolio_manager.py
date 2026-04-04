@@ -1,11 +1,12 @@
-"""Skill 8: Portfolio Manager — NL portfolio updates via Telegram."""
+"""Skill 8: Portfolio Manager — structured portfolio updates via Telegram."""
 
 import logging
+import re
 from pathlib import Path
 
 import yaml
 
-from core import config_loader, llm_client, telegram_bot
+from core import config_loader, telegram_bot
 import core.news_fetcher as _news_fetcher
 import core.news_scorer as _news_scorer
 
@@ -14,24 +15,101 @@ logger = logging.getLogger(__name__)
 COMMANDS = [
     {"type": "exact", "pattern": "portfolio", "call": "show_portfolio"},
     {"type": "prefix", "pattern": "portfolio update ", "call": "start_portfolio_update"},
+    {"type": "prefix", "pattern": ">>>", "call": "start_portfolio_update"},
     {"type": "exact", "pattern": "portfolio sync", "call": "sync_portfolio"},
+    {"type": "exact", "pattern": "portfolio prompt", "call": "send_portfolio_prompt"},
+    {"type": "exact", "pattern": "skill prompt", "call": "send_skill_prompt"},
+    {"type": "prefix", "pattern": "thesis ", "call": "update_thesis"},
+    {"type": "prefix", "pattern": "kill ", "call": "update_kill"},
     {"type": "exact", "pattern": "confirm", "call": "confirm_update"},
+    {"type": "exact", "pattern": "yes", "call": "confirm_update"},
     {"type": "exact", "pattern": "cancel", "call": "cancel_update"},
 ]
 HELP_ORDER = 9
 HELP = (
     "*Portfolio*\n"
     "`portfolio` — show current holdings\n"
-    "`portfolio update <desc>` — update via natural language\n"
+    "`portfolio update <lines>` or `>>> <lines>` — update via structured format\n"
+    "`yes` / `cancel` — after an update preview\n"
+    "`thesis TICKER <text>` — update thesis directly\n"
+    "`kill TICKER <text>` — update kill condition directly\n"
     "`portfolio sync` — hot-reload configs after manual edits\n"
-    "`confirm` / `cancel` — after an update preview"
+    "`portfolio prompt` — send update format template\n"
+    "`skill prompt` — send new-skill meta-prompt for Claude"
 )
 
 PORTFOLIO_PATH = Path(__file__).parent.parent / "config" / "portfolio.yaml"
 THESES_PATH = Path(__file__).parent.parent / "config" / "theses.yaml"
-PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "portfolio_update.txt"
+SKILL_META_PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "new_skill_meta_prompt.txt"
+PORTFOLIO_COMPOSER_PATH = Path(__file__).parent.parent / "prompts" / "portfolio_update_composer.txt"
 
 _PENDING_UPDATE: dict | None = None
+
+# Regex patterns for the three line types
+_TICKER = r'([A-Z0-9][A-Z0-9._-]*)'
+_CURRENCY = r'(?:[$€£]|[A-Z]{2,3})?'
+_RE_REMOVE = re.compile(rf'^-{_TICKER}\s*$', re.IGNORECASE)
+_RE_UPDATE = re.compile(rf'^{_TICKER}\s+(\d+)\s+@{_CURRENCY}([0-9.]+)\s*$', re.IGNORECASE)
+_RE_ADD = re.compile(
+    rf'^\+?{_TICKER}\s+(\d+)\s+@{_CURRENCY}([0-9.]+)\s+(\S+)\s+([^|]+?)(?:\|(.+))?$',
+    re.IGNORECASE,
+)
+
+
+def _parse_update_text(text: str) -> tuple[list[dict], list[str]]:
+    # If delimiter present, take only what comes after the last ---
+    if '---' in text:
+        text = text.split('---')[-1]
+
+    changes, errors = [], []
+    for raw in text.strip().splitlines():
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+
+        m = _RE_REMOVE.match(line)
+        if m:
+            changes.append({"ticker": m.group(1).upper(), "remove": True})
+            continue
+
+        m = _RE_ADD.match(line)
+        if m:
+            ticker = m.group(1).upper()
+            change = {
+                "ticker": ticker,
+                "remove": False,
+                "shares": int(m.group(2)),
+                "cost": float(m.group(3)),
+                "exchange": m.group(4).upper(),
+                "theme": m.group(5).strip(),
+            }
+            if m.group(6):
+                for part in m.group(6).split('|'):
+                    part = part.strip()
+                    if ':' not in part:
+                        continue
+                    key, val = part.split(':', 1)
+                    key, val = key.strip().lower(), val.strip()
+                    if key == 'names':
+                        change['names'] = [n.strip() for n in val.split(',') if n.strip()]
+                    elif key in ('thesis', 'kill', 'stance', 'strategy'):
+                        change[key] = val
+            changes.append(change)
+            continue
+
+        m = _RE_UPDATE.match(line)
+        if m:
+            changes.append({
+                "ticker": m.group(1).upper(),
+                "remove": False,
+                "shares": int(m.group(2)),
+                "cost": float(m.group(3)),
+            })
+            continue
+
+        errors.append(line)
+
+    return changes, errors
 
 
 def show_portfolio() -> str:
@@ -50,46 +128,27 @@ def show_portfolio() -> str:
             short_stance = stance.split(".")[0] if stance else "—"
             lines.append(f"  {t}: {pos['shares']} shares @ ${pos['cost']:.2f}  _{short_stance}_")
 
-    lines.append("\n_Send `portfolio update <description>` to update holdings._")
+    lines.append("\n_Send `portfolio prompt` for update format._")
     return "\n".join(lines)
 
 
 def start_portfolio_update(text: str) -> str:
     global _PENDING_UPDATE
 
-    with open(PORTFOLIO_PATH) as f:
-        portfolio_yaml = f.read()
-    with open(THESES_PATH) as f:
-        theses_yaml = f.read()
-    with open(PROMPT_PATH) as f:
-        prompt_template = f.read()
+    changes, errors = _parse_update_text(text)
 
-    prompt = prompt_template.replace("{current_portfolio_yaml}", portfolio_yaml)
-    prompt = prompt.replace("{current_theses_yaml}", theses_yaml)
-    prompt = prompt.replace("{user_message}", text)
-
-    try:
-        result = llm_client.json_chat([{"role": "user", "content": prompt}], temperature=0.1, max_tokens=2048)
-    except Exception as e:
-        logger.error("Portfolio update LLM call failed: %s", e)
-        return f"⚠️ Failed to parse update: {e}"
-
-    if not isinstance(result, dict) or "changes" not in result:
-        logger.error("Portfolio update: unexpected LLM response: %s", result)
-        return "⚠️ Could not parse portfolio changes. Try rephrasing."
-
-    changes = result.get("changes", [])
-    summary = result.get("summary", "")
+    if errors:
+        err_lines = "\n".join(f"  `{e}`" for e in errors)
+        return f"⚠️ Could not parse these lines:\n{err_lines}\n\nSend `portfolio prompt` for the format."
 
     if not changes:
-        return "No changes detected. Try describing what you bought, sold, or trimmed."
+        return "No changes detected. Send `portfolio prompt` for the format."
 
-    _PENDING_UPDATE = result
+    _PENDING_UPDATE = {"changes": changes}
 
-    # Build preview
-    preview_lines = [f"📋 *Portfolio Update Preview*", "━━━━━━━━━━━━━━━━━━━", f"_{summary}_", ""]
+    preview_lines = ["📋 *Portfolio Update Preview*", "━━━━━━━━━━━━━━━━━━━", ""]
     for c in changes:
-        ticker = c.get("ticker", "?")
+        ticker = c["ticker"]
         if c.get("remove"):
             preview_lines.append(f"❌ Remove *{ticker}*")
         else:
@@ -100,17 +159,17 @@ def start_portfolio_update(text: str) -> str:
                 parts.append(f"@ ${c['cost']:.2f}")
             if c.get("theme"):
                 parts.append(f"({c['theme']})")
-            if c.get("thesis") is None and not c.get("remove"):
-                parts.append("⚠️ _no thesis — will ask_")
+            if not c.get("thesis") and not c.get("remove"):
+                parts.append("⚠️ _no thesis_")
             preview_lines.append(" ".join(parts))
 
-    preview_lines.append("\nSend `confirm` to apply or `cancel` to abort.")
+    preview_lines.append("\nSend `yes` to apply or `cancel` to abort.")
 
-    missing_thesis = [c["ticker"] for c in changes if not c.get("remove") and not c.get("thesis")]
-    if missing_thesis:
+    missing = [c["ticker"] for c in changes if not c.get("remove") and not c.get("thesis")]
+    if missing:
         preview_lines.append(
-            f"\n_Missing thesis for: {', '.join(missing_thesis)}. "
-            f"After confirming, send: `thesis TICKER your thesis text`_"
+            f"\n_After confirming, add thesis for: {', '.join(missing)}_\n"
+            f"_Use: `thesis TICKER your thesis text`_"
         )
 
     return "\n".join(preview_lines)
@@ -119,11 +178,10 @@ def start_portfolio_update(text: str) -> str:
 def confirm_update() -> str:
     global _PENDING_UPDATE
     if not _PENDING_UPDATE:
-        return "No pending update. Send `portfolio update <description>` first."
+        return "No pending update. Send `portfolio update <lines>` first."
 
     changes = _PENDING_UPDATE.get("changes", [])
 
-    # Load current configs
     with open(PORTFOLIO_PATH) as f:
         portfolio = yaml.safe_load(f)
     with open(THESES_PATH) as f:
@@ -155,7 +213,7 @@ def confirm_update() -> str:
             if change.get("names") is not None:
                 pos["names"] = change["names"]
         else:
-            new_pos = {
+            wl.append({
                 "ticker": ticker,
                 "type": change.get("type", "stock"),
                 "exchange": change.get("exchange", "NASDAQ"),
@@ -163,21 +221,14 @@ def confirm_update() -> str:
                 "shares": change.get("shares", 0),
                 "cost": change.get("cost", 0.0),
                 "names": change.get("names", []),
-            }
-            wl.append(new_pos)
+            })
 
-        # Update thesis
         if change.get("thesis") or change.get("kill"):
-            thesis_entry = theses.get(ticker, {})
-            if change.get("thesis"):
-                thesis_entry["thesis"] = change["thesis"]
-            if change.get("kill"):
-                thesis_entry["kill"] = change["kill"]
-            if change.get("stance"):
-                thesis_entry["stance"] = change["stance"]
-            if change.get("strategy"):
-                thesis_entry["strategy"] = change["strategy"]
-            theses[ticker] = thesis_entry
+            entry = theses.get(ticker, {})
+            for field in ("thesis", "kill", "stance", "strategy"):
+                if change.get(field):
+                    entry[field] = change[field]
+            theses[ticker] = entry
 
         applied += 1
 
@@ -190,7 +241,6 @@ def confirm_update() -> str:
     with open(THESES_PATH, "w") as f:
         yaml.dump(theses, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
-    # Hot-reload everything
     config_loader.reload_all()
     _news_fetcher._keywords_cache = None
     _news_scorer._prompt_template = None
@@ -207,8 +257,74 @@ def cancel_update() -> str:
     return "Cancelled."
 
 
+def update_thesis(text: str) -> str:
+    parts = text.strip().split(" ", 1)
+    if len(parts) < 2:
+        return "Usage: `thesis TICKER your thesis text`"
+    ticker, thesis_text = parts[0].upper(), parts[1].strip()
+
+    with open(THESES_PATH) as f:
+        theses = yaml.safe_load(f) or {}
+    entry = theses.get(ticker, {})
+    entry["thesis"] = thesis_text
+    theses[ticker] = entry
+    with open(THESES_PATH, "w") as f:
+        yaml.dump(theses, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    config_loader.reload_all()
+    _news_scorer._prompt_template = None
+    logger.info("thesis updated for %s", ticker)
+    return f"✅ Thesis updated for *{ticker}*."
+
+
+def update_kill(text: str) -> str:
+    parts = text.strip().split(" ", 1)
+    if len(parts) < 2:
+        return "Usage: `kill TICKER your kill condition`"
+    ticker, kill_text = parts[0].upper(), parts[1].strip()
+
+    with open(THESES_PATH) as f:
+        theses = yaml.safe_load(f) or {}
+    entry = theses.get(ticker, {})
+    entry["kill"] = kill_text
+    theses[ticker] = entry
+    with open(THESES_PATH, "w") as f:
+        yaml.dump(theses, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
+
+    config_loader.reload_all()
+    _news_scorer._prompt_template = None
+    logger.info("kill condition updated for %s", ticker)
+    return f"✅ Kill condition updated for *{ticker}*."
+
+
 def sync_portfolio() -> str:
     config_loader.reload_all()
     _news_fetcher._keywords_cache = None
     _news_scorer._prompt_template = None
     return "✅ Configs reloaded. Portfolio, theses, keywords, and scoring prompt are now up to date."
+
+
+def _send_file_chunked(path: Path, label: str) -> str:
+    with open(path) as f:
+        text = f.read()
+    chunks, current, length = [], [], 0
+    for line in text.splitlines(keepends=True):
+        if length + len(line) > 4000 and current:
+            chunks.append("".join(current))
+            current, length = [], 0
+        current.append(line)
+        length += len(line)
+    if current:
+        chunks.append("".join(current))
+    for i, chunk in enumerate(chunks):
+        telegram_bot.send(chunk, parse_mode="")
+        logger.info("%s: sent chunk %d/%d", label, i + 1, len(chunks))
+    return f"📋 {label} sent ({len(chunks)} message(s))."
+
+
+def send_portfolio_prompt() -> str:
+    return _send_file_chunked(PORTFOLIO_COMPOSER_PATH, "Portfolio update format")
+
+
+def send_skill_prompt() -> str:
+    return _send_file_chunked(SKILL_META_PROMPT_PATH, "Skill meta-prompt")

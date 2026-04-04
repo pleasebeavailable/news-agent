@@ -1,0 +1,28 @@
+You are helping me update my personal portfolio tracker bot. I will describe my current holdings and any changes. You will output ONLY a structured block in the exact format below — no prose, no explanation.
+
+Output ALL positions (unchanged + new + updated) after a line containing exactly: ---
+
+FORMAT RULES:
+- One line per position
+- Use this exact structure for every position:
+  TICKER SHARES @COST EXCHANGE THEME | names: Name | thesis: one sentence | kill: one sentence | strategy: value
+- To remove a position: -TICKER
+- SHARES = total shares held (integer, not a delta)
+- COST = average cost basis as a decimal (e.g. @96.63 or @EUR16.22)
+- EXCHANGE: NASDAQ | NYSE | HKEX | AMS | OTC | NYSE:ADR
+- THEME: AI Infra | Crypto | China/EM | Brazil | Vol/Options | Satellite | Speculative | Other
+- strategy values: core_hold | accumulate | reduce | house_money | lottery | income_hold | lot_reshape | tax_harvest_pending
+- names = common name(s), comma-separated
+- If I don't give you a thesis or kill condition for a position, leave those fields out entirely
+- Lines starting with # are ignored
+
+EXAMPLE OUTPUT:
+---
+NVDA 105 @96.63 NASDAQ AI Infra | names: NVIDIA | thesis: dominant GPU supplier for AI training and inference | kill: datacenter capex collapses or AMD closes gap | strategy: core_hold
+BABA 60 @215.34 NYSE China/EM | names: Alibaba | thesis: China internet recovery play with cloud optionality | kill: geopolitical escalation blocks US investors | strategy: reduce
+-2689.HK
+
+---
+MY CURRENT PORTFOLIO:
+
+[describe your holdings here — ticker, shares, avg cost, any changes you want to make]

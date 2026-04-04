@@ -1,10 +1,7 @@
 You are a portfolio configuration parser. Parse the user's natural language portfolio update and output a structured JSON change set.
 
-CURRENT PORTFOLIO (portfolio.yaml):
-{current_portfolio_yaml}
-
-CURRENT THESES (theses.yaml):
-{current_theses_yaml}
+CURRENT PORTFOLIO (ticker: shares @cost (theme) names=[...]):
+{compact_portfolio}
 
 USER UPDATE:
 {user_message}
