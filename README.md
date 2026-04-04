@@ -187,7 +187,7 @@ reinstalls deps, re-applies network policy every time.
 | `morning brief` | Run morning brief now |
 | `weekly summary` | Run weekly summary now |
 | `watchlist` | Live prices for all positions, grouped by theme |
-| `portfolio` | Portfolio with P&L per position |
+| `portfolio pnl` | Portfolio with P&L per position |
 | `NVDA` | Quote for any single ticker |
 | `NVDA vs AMD` | Side-by-side comparison |
 | `news` | Latest scored headlines from DB |
@@ -201,9 +201,40 @@ reinstalls deps, re-applies network policy every time.
 | `Research PLTR` | Bull/bear LLM analysis |
 | `Deep dive NVDA` | Full deep analysis |
 | `What's happening with China?` | Topic context from news DB |
+| `portfolio` | Holdings grouped by theme with stance |
+| `portfolio update <lines>` or `>>> <lines>` | Update portfolio via structured format |
+| `yes` / `cancel` | Confirm or abort a pending portfolio update |
+| `thesis TICKER <text>` | Write thesis directly to theses.yaml |
+| `kill TICKER <text>` | Write kill condition directly to theses.yaml |
+| `portfolio sync` | Hot-reload all configs without restarting |
+| `portfolio prompt` | Send update format template to paste into Claude desktop |
+| `skill prompt` | Send new-skill meta-prompt for building skills |
 | `status` | Bot health check |
 | `reload` | Reload config without restarting |
 | *(anything else)* | Free-form chat with LLM (keeps 20-message context) |
+
+---
+
+## Portfolio updates
+
+The bot can update `config/portfolio.yaml` and `config/theses.yaml` directly from Telegram.
+No LLM is involved — updates are parsed deterministically.
+
+**Flow:**
+1. Send `portfolio prompt` → bot sends the template
+2. Paste it into Claude desktop, describe your holdings
+3. Claude outputs structured lines (one per position)
+4. Send `>>>` followed by Claude's output to the bot
+5. Bot shows a preview → send `yes` to apply or `cancel` to abort
+
+**Line format** (all fields except ticker/shares/cost are optional):
+```
+TICKER SHARES @COST EXCHANGE THEME | names: Name | thesis: ... | kill: ... | strategy: value
+-TICKER   ← removes a position
+```
+
+Lines without `+` are treated as upserts — update if ticker exists, add if not.
+After applying, news pipeline is hot-reloaded automatically.
 
 ---
 
@@ -218,6 +249,7 @@ Telegram → poll_loop() → handle_message() → skill router
                                              ├── skill_weekly_summary (LLM)
                                              ├── skill_research       (LLM)
                                              ├── skill_geopolitical   (LLM)
+                                             ├── skill_portfolio_manager (deterministic YAML writer)
                                              └── free-form chat       (LLM, 20-msg history)
 
 Background scheduler (30s tick):
@@ -445,3 +477,5 @@ it's likely an older version of the code. Redeploy.
 | `skills/` | Morning brief, weekly summary, research, earnings, etc. |
 | `config/` | Portfolio, theses, keywords, news sources |
 | `prompts/` | LLM prompt templates |
+| `prompts/portfolio_update_composer.txt` | Prompt to paste into Claude desktop — generates structured portfolio update lines |
+| `skills/portfolio_manager.py` | Portfolio update skill — regex parser, YAML writer, no LLM |

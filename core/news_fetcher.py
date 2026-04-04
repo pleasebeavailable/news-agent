@@ -4,7 +4,7 @@ import difflib
 import logging
 import os
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urljoin, urlparse
 
 import feedparser
@@ -36,6 +36,11 @@ def _keywords() -> dict:
     if _keywords_cache is None:
         with open(KEYWORDS_PATH) as f:
             _keywords_cache = yaml.safe_load(f)
+        from core import config_loader
+        _keywords_cache["keyword_groups"]["portfolio_tickers"] = {
+            "weight": 2.5,
+            "terms": config_loader.portfolio_keyword_terms(),
+        }
     return _keywords_cache
 
 
@@ -61,7 +66,7 @@ def _parse_date(entry) -> str | None:
     return None
 
 
-def _title_seen(title: str, seen_titles: list[str], threshold: float = 0.85) -> bool:
+def title_seen(title: str, seen_titles: list[str], threshold: float = 0.85) -> bool:
     for seen in seen_titles:
         ratio = difflib.SequenceMatcher(None, title.lower(), seen.lower()).ratio()
         if ratio >= threshold:
@@ -119,7 +124,7 @@ def _entries_from_feedparser(entries, cfg: dict) -> list[dict]:
 
         if not title or (url and url_exists(url)):
             continue
-        if _title_seen(title, seen_titles):
+        if title_seen(title, seen_titles):
             continue
 
         matched_terms, matched_groups = _match_keywords(f"{title} {summary}")
@@ -196,9 +201,6 @@ _MAX_GEO_BYPASS = 15  # max articles per geo source that bypass keyword filter
 _MAX_ARTICLE_AGE_HOURS = 6  # skip articles older than this (when published_at is known)
 
 
-_MAX_ARTICLE_AGE_HOURS = 24
-
-
 def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
     """Fetch RSS feeds, deduplicate, keyword-filter. Returns raw articles.
 
@@ -233,7 +235,7 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
                 continue
 
             # Dedup by title similarity
-            if _title_seen(title, seen_titles):
+            if title_seen(title, seen_titles):
                 continue
 
             # Skip stale articles based on published date
@@ -317,7 +319,7 @@ def fetch_tavily(max_results_per_query: int = 3) -> list[dict]:
             for r in results.get("results", []):
                 title = r.get("title", "").strip()
                 url = r.get("url", "")
-                if not title or (url and url_exists(url)) or _title_seen(title, seen_titles):
+                if not title or (url and url_exists(url)) or title_seen(title, seen_titles):
                     continue
                 content = r.get("content", "")
                 matched_terms, matched_groups = _match_keywords(f"{title} {content}")

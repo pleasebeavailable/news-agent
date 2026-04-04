@@ -22,7 +22,11 @@ SCHEDULE = [
      "days": ["monday", "tuesday", "wednesday", "thursday", "friday"], "at": "07:00"},
 ]
 HELP_ORDER = 1
-HELP = "*Briefs*\n`morning brief` — run morning brief now"
+HELP = (
+    "*Briefs*\n"
+    "`morning brief` — weekday market brief (auto 07:00 CET)\n"
+    "`weekly summary` — weekly portfolio recap (auto Saturday 07:00 CET)"
+)
 
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "morning_brief.txt"
 
@@ -61,7 +65,8 @@ def generate_brief() -> str:
 
     data = assemble_data()
     data_json = json.dumps(data, default=str)
-    prompt = template.replace("{assembled_data_json}", data_json)
+    prompt = template.replace("{portfolio_context}", config_loader.portfolio_scoring_context())
+    prompt = prompt.replace("{assembled_data_json}", data_json)
     prompt = prompt.replace("{date}", data["date"])
 
     logger.info("Brief prompt: %d chars, news=%d, movers=%d",

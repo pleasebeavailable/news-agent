@@ -9,15 +9,15 @@ logger = logging.getLogger(__name__)
 # ── Skill metadata (auto-discovery) ──────────────────────────────────
 COMMANDS = [
     {"type": "exact", "pattern": "watchlist", "call": "get_watchlist_message"},
-    {"type": "exact", "pattern": "portfolio", "call": "get_portfolio_message"},
+    {"type": "exact", "pattern": "portfolio pnl", "call": "get_portfolio_message"},
     {"type": "regex", "pattern": r"(?i)(\w[\w.]+)\s+vs\s+(\w[\w.]+)",
      "call": "compare", "args": "upper", "priority": 50},
 ]
 HELP_ORDER = 2
 HELP = (
-    "*Portfolio*\n"
+    "*Prices*\n"
     "`watchlist` — live prices for all positions\n"
-    "`portfolio` — positions with themes & P&L\n"
+    "`portfolio pnl` — positions with themes & P&L\n"
     "`NVDA` — quote for any ticker\n"
     "`NVDA vs AMD` — side-by-side comparison"
 )

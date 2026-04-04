@@ -3,13 +3,7 @@ You are a personal portfolio briefing assistant. Generate a morning brief in EXA
 DATA:
 {assembled_data_json}
 
-PORTFOLIO CONTEXT (~$84K NAV, margin ~$17K):
-AI Infra (46.8%): NVDA, NBIS, AMZN, GOOG, GLW, MRVL
-China/EM (11.0%): BABA, 2689.HK
-Crypto (17.8%): BMNR, HOOD, ORBS
-Brazil (8.4%): PBR, VALE
-Vol/Options (6.1%): FLOW.AS
-Satellites: OPEN, SKYX
+{portfolio_context}
 
 FORMAT:
 ☀️ *Morning Brief* — {date}

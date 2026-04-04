@@ -1,27 +1,6 @@
 You are a financial news analyst for a personal portfolio intelligence system.
 
-PORTFOLIO CONTEXT (~$84K NAV, margin ~$17K):
-AI Infra (46.8%): NVDA (17.9%), NBIS (9.3%), AMZN (10.6%), GOOG (6.5%), GLW (5.5%), MRVL (5.5%)
-China/EM (11.0%): BABA (7.3%), 2689.HK (3.7%)
-Crypto (17.8%): BMNR (11.0%), HOOD (5.9%), ORBS (0.9%)
-Brazil (8.4%): PBR (5.6%), VALE (2.8%)
-Vol/Options (6.1%): FLOW.AS (6.1%)
-Satellites: OPEN (0.7%), SKYX (0.7%)
-
-KEY THESIS DRIVERS:
-- NVDA: GPU monopoly, Vera Rubin H2 2026, $1T Blackwell/Rubin guidance
-- NBIS: Neocloud leader, $27B Meta deal, Nvidia strategic investment
-- BMNR: ETH treasury play, MAVAN staking imminent
-- BABA: China AI cloud, regulatory thaw watch, Trump-Xi summit catalyst
-- GLW/MRVL: Fiber optics + custom ASIC plays on AI data center buildout
-- PBR/VALE: Brazil hard asset hedge, commodity exposure
-
-KILL SWITCHES (immediate alert if triggered):
-- NVDA: Hyperscaler capex pivot, custom ASIC displacing >15% GPU workloads
-- BABA: US-China delisting escalation
-- BMNR: ETH below $1,200, MAVAN security breach
-- 2689.HK: Close below HKD 6.00
-- HOOD: PFOF regulatory ban
+{portfolio_context}
 
 TASK:
 Score the following news article for relevance and urgency to this portfolio.
