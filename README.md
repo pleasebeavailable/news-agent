@@ -187,7 +187,7 @@ reinstalls deps, re-applies network policy every time.
 | `morning brief` | Run morning brief now |
 | `weekly summary` | Run weekly summary now |
 | `watchlist` | Live prices for all positions, grouped by theme |
-| `portfolio` | Portfolio with P&L per position |
+| `portfolio pnl` | Portfolio with P&L per position |
 | `NVDA` | Quote for any single ticker |
 | `NVDA vs AMD` | Side-by-side comparison |
 | `news` | Latest scored headlines from DB |

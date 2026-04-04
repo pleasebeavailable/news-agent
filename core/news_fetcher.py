@@ -201,9 +201,6 @@ _MAX_GEO_BYPASS = 15  # max articles per geo source that bypass keyword filter
 _MAX_ARTICLE_AGE_HOURS = 6  # skip articles older than this (when published_at is known)
 
 
-_MAX_ARTICLE_AGE_HOURS = 6
-
-
 def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
     """Fetch RSS feeds, deduplicate, keyword-filter. Returns raw articles.
 
