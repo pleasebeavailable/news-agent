@@ -8,6 +8,18 @@ from core import config_loader
 
 logger = logging.getLogger(__name__)
 
+# ── Skill metadata (auto-discovery) ──────────────────────────────────
+COMMANDS = [
+    {"type": "exact", "pattern": "earnings", "call": "get_upcoming_earnings_message"},
+    {"type": "exact", "pattern": "calendar", "call": "get_calendar_message"},
+]
+HELP_ORDER = 5
+HELP = (
+    "*Earnings*\n"
+    "`earnings` — upcoming earnings for your tickers\n"
+    "`calendar` — full earnings calendar"
+)
+
 
 def get_upcoming_earnings(days_ahead: int = 30) -> list[dict]:
     wl = config_loader.watchlist()

@@ -2,6 +2,7 @@
 
 import difflib
 import logging
+import os
 import re
 from datetime import datetime, timezone
 from urllib.parse import urljoin, urlparse
@@ -195,6 +196,9 @@ _MAX_GEO_BYPASS = 15  # max articles per geo source that bypass keyword filter
 _MAX_ARTICLE_AGE_HOURS = 6  # skip articles older than this (when published_at is known)
 
 
+_MAX_ARTICLE_AGE_HOURS = 24
+
+
 def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
     """Fetch RSS feeds, deduplicate, keyword-filter. Returns raw articles.
 
@@ -202,6 +206,7 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
     """
     articles = []
     seen_titles: list[str] = get_recent_titles(48)
+    now_utc = datetime.now(timezone.utc)
 
     for feed_cfg in _sources()["rss_feeds"]:
         if source_filter and feed_cfg["name"] not in source_filter:
@@ -231,12 +236,15 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
             if _title_seen(title, seen_titles):
                 continue
 
-            # Filter stale articles — skip if published date is known and too old
+            # Skip stale articles based on published date
             pub = _parse_date(entry)
-            if pub is not None:
-                age_hours = (datetime.now(timezone.utc) - datetime.fromisoformat(pub)).total_seconds() / 3600
-                if age_hours > _MAX_ARTICLE_AGE_HOURS:
-                    continue
+            if pub:
+                try:
+                    pub_dt = datetime.fromisoformat(pub)
+                    if now_utc - pub_dt > timedelta(hours=_MAX_ARTICLE_AGE_HOURS):
+                        continue
+                except Exception:
+                    pass
 
             # Keyword filter — skip if no match at all
             combined = f"{title} {summary}"
@@ -264,4 +272,69 @@ def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
         if feed_new:
             logger.info("fetched %s — %d new items", feed_cfg["name"], feed_new)
 
+    return articles
+
+
+def fetch_tavily(max_results_per_query: int = 3) -> list[dict]:
+    """Fetch recent news via Tavily API (≤24h). Returns articles in same format as fetch_all()."""
+    api_key = os.environ.get("TAVILY_API_KEY")
+    if not api_key:
+        logger.warning("TAVILY_API_KEY not set — skipping Tavily fetch")
+        return []
+
+    try:
+        from tavily import TavilyClient
+    except ImportError:
+        logger.warning("tavily-python not installed — skipping Tavily fetch")
+        return []
+
+    from core import config_loader
+
+    client = TavilyClient(api_key=api_key)
+    seen_titles: list[str] = get_recent_titles(6)
+
+    # One query per portfolio theme
+    wl = config_loader.watchlist()
+    theme_tickers: dict[str, list[str]] = {}
+    for pos in wl:
+        theme = pos.get("theme", "General")
+        theme_tickers.setdefault(theme, []).append(pos["ticker"])
+
+    queries = [
+        f"{' '.join(tickers[:5])} {theme} news"
+        for theme, tickers in theme_tickers.items()
+    ]
+
+    articles = []
+    for query in queries:
+        try:
+            results = client.search(
+                query,
+                search_depth="basic",
+                max_results=max_results_per_query,
+                days=1,
+            )
+            for r in results.get("results", []):
+                title = r.get("title", "").strip()
+                url = r.get("url", "")
+                if not title or (url and url_exists(url)) or _title_seen(title, seen_titles):
+                    continue
+                content = r.get("content", "")
+                matched_terms, matched_groups = _match_keywords(f"{title} {content}")
+                seen_titles.append(title)
+                articles.append({
+                    "source": "Tavily Web",
+                    "source_tier": 1,
+                    "trust_flag": None,
+                    "title": title,
+                    "url": url,
+                    "summary": content[:500],
+                    "published_at": r.get("published_date"),
+                    "matched_keywords": matched_terms,
+                    "matched_groups": matched_groups if matched_groups else ["general"],
+                })
+        except Exception as e:
+            logger.warning("Tavily query failed ('%s'): %s", query[:60], e)
+
+    logger.info("Tavily fetch: %d new articles across %d queries", len(articles), len(queries))
     return articles

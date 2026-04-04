@@ -9,6 +9,23 @@ from core import config_loader, stock_data, news_store, llm_client
 
 logger = logging.getLogger(__name__)
 
+# ── Skill metadata (auto-discovery) ──────────────────────────────────
+COMMANDS = [
+    {"type": "regex", "pattern": r"(?i)research\s+(\w[\w.]+)",
+     "call": "research_ticker", "args": "upper", "priority": 30},
+    {"type": "regex", "pattern": r"(?i)deep\s+dive\s+(\w[\w.]+)",
+     "call": "deep_dive", "args": "upper", "priority": 30},
+    {"type": "regex", "pattern": r"(?i)what'?s\s+happening\s+with\s+(.+?)\??$",
+     "call": "topic_context", "args": "raw", "priority": 40},
+]
+HELP_ORDER = 6
+HELP = (
+    "*Research*\n"
+    "`Research PLTR` — bull/bear LLM analysis\n"
+    "`Deep dive NVDA` — full deep analysis\n"
+    "`What's happening with China?` — topic context"
+)
+
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "research_bull_bear.txt"
 
 

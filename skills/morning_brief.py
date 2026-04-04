@@ -10,7 +10,27 @@ from skills.earnings import get_upcoming_earnings
 
 logger = logging.getLogger(__name__)
 
+# ── Skill metadata (auto-discovery) ──────────────────────────────────
+COMMANDS = [
+    {"type": "exact", "pattern": "morning brief", "call": "send_morning_brief",
+     "thread": True, "ack": "Generating morning brief..."},
+    {"type": "exact", "pattern": "brief", "call": "send_morning_brief",
+     "thread": True, "ack": "Generating morning brief..."},
+]
+SCHEDULE = [
+    {"func": "send_morning_brief",
+     "days": ["monday", "tuesday", "wednesday", "thursday", "friday"], "at": "07:00"},
+]
+HELP_ORDER = 1
+HELP = "*Briefs*\n`morning brief` — run morning brief now"
+
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "morning_brief.txt"
+
+_BRIEF_FIELDS = ("title", "score", "source", "affected_tickers", "summary", "published_at")
+
+
+def _slim(article: dict) -> dict:
+    return {k: article[k] for k in _BRIEF_FIELDS if k in article}
 
 
 def _article_date(a: dict) -> str:
@@ -21,9 +41,9 @@ def _article_date(a: dict) -> str:
 def assemble_data() -> dict:
     wl = config_loader.watchlist()
     alerts_cfg = config_loader.alerts_config()
-    raw_news = news_store.get_recent(since_hours=16, min_score=6, limit=10)
+    raw_news = news_store.get_recent(since_hours=6, min_score=6, limit=10)
     # Stamp each article with its date so LLM knows article age
-    dated_news = [{**a, "title": f"[{_article_date(a)}] {a.get('title', '')}"} for a in raw_news]
+    dated_news = [{**_slim(a), "title": f"[{_article_date(a)}] {a.get('title', '')}"} for a in raw_news]
     return {
         "futures": stock_data.get_futures(),
         "news": dated_news,
@@ -47,7 +67,7 @@ def generate_brief() -> str:
     logger.info("Brief prompt: %d chars, news=%d, movers=%d",
                 len(prompt), len(data.get("news", [])), len(data.get("movers", [])))
     messages = [{"role": "user", "content": prompt}]
-    return llm_client.chat(messages, temperature=0.4, max_tokens=4096)
+    return llm_client.chat(messages, temperature=0.4, max_tokens=1024)
 
 
 def send_morning_brief():

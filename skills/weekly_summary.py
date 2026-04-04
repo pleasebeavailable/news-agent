@@ -13,7 +13,28 @@ from skills.earnings import get_upcoming_earnings
 
 logger = logging.getLogger(__name__)
 
+# ── Skill metadata (auto-discovery) ──────────────────────────────────
+COMMANDS = [
+    {"type": "exact", "pattern": "weekly summary", "call": "send_weekly_summary",
+     "thread": True, "ack": "Generating weekly summary..."},
+    {"type": "exact", "pattern": "summary", "call": "send_weekly_summary",
+     "thread": True, "ack": "Generating weekly summary..."},
+    {"type": "exact", "pattern": "saturday brief", "call": "send_weekly_summary",
+     "thread": True, "ack": "Generating weekly summary..."},
+]
+SCHEDULE = [
+    {"func": "send_weekly_summary", "days": ["saturday"], "at": "07:00"},
+]
+HELP_ORDER = 1
+HELP = "`weekly summary` — run weekly summary now"
+
 PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "weekly_summary.txt"
+
+_BRIEF_FIELDS = ("title", "score", "source", "affected_tickers", "summary", "published_at")
+
+
+def _slim(article: dict) -> dict:
+    return {k: article[k] for k in _BRIEF_FIELDS if k in article}
 
 
 def _weekly_perf(ticker: str) -> dict:
@@ -47,8 +68,8 @@ def assemble_data() -> dict:
     return {
         "performance": [_weekly_perf(t) for t in tickers],
         "benchmark": _weekly_perf("^GSPC"),
-        "macro_events": news_store.get_recent(since_hours=hours_since_monday, min_score=6, limit=10),
-        "portfolio_news": news_store.get_recent(since_hours=hours_since_monday, min_score=5, limit=20),
+        "macro_events": [_slim(a) for a in news_store.get_recent(since_hours=hours_since_monday, min_score=6, limit=10)],
+        "portfolio_news": [_slim(a) for a in news_store.get_recent(since_hours=hours_since_monday, min_score=5, limit=20)],
         "next_week_earnings": get_upcoming_earnings(days_ahead=7),
         "date_range": f"{week_start} – {week_end}",
     }
@@ -66,7 +87,7 @@ def generate_summary() -> str:
     prompt = prompt.replace("{date_range}", data["date_range"])
 
     messages = [{"role": "user", "content": prompt}]
-    return llm_client.chat(messages, temperature=0.4, max_tokens=4096)
+    return llm_client.chat(messages, temperature=0.4, max_tokens=2048)
 
 
 def send_weekly_summary():

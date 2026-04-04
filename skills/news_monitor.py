@@ -8,11 +8,34 @@ from core import news_fetcher, news_scorer, news_store, telegram_bot, config_loa
 
 logger = logging.getLogger(__name__)
 
+# ── Skill metadata (auto-discovery) ──────────────────────────────────
+COMMANDS = [
+    {"type": "exact", "pattern": "news", "call": "get_recent_news"},
+    {"type": "exact", "pattern": "alerts", "call": "get_recent_alerts"},
+    {"type": "exact", "pattern": "kills", "call": "get_kill_switch_status"},
+    {"type": "prefix", "pattern": "news ", "call": "get_news_by_topic"},
+    {"type": "regex", "pattern": r"(?i)any\s+news\s+on\s+(.+?)\??$",
+     "call": "get_news_by_topic", "args": "raw", "priority": 20},
+]
+SCHEDULE = [
+    {"func": "run_news_cycle", "interval": "news_poll_minutes", "default": 15,
+     "run_at_startup": True},
+]
+HELP_ORDER = 4
+HELP = (
+    "*News*\n"
+    "`news` — latest scored headlines\n"
+    "`news AI` — headlines filtered by topic\n"
+    "`Any news on NVDA?` — news for a ticker\n"
+    "`alerts` — high-score alerts only\n"
+    "`kills` — kill switch status"
+)
+
 
 def run_news_cycle():
     """Fetch → score → store → alert. Call this on a schedule (e.g. every 15 min)."""
     try:
-        articles = news_fetcher.fetch_all() + news_fetcher.fetch_research_urls()
+        articles = news_fetcher.fetch_all() + news_fetcher.fetch_research_urls() + news_fetcher.fetch_tavily()
         if not articles:
             logger.info("News cycle: no new articles from any feed")
             return
@@ -75,7 +98,7 @@ def _format_alert(article: dict) -> str:
     # Score 7-8 — short format
     kill = "\n⚠️ *Kill switch*" if article.get("kill_switch_triggered") else ""
     return (
-        f"📰 {ts} [{score}/10] *{safe_title}*\n"
+        f"📰 *[{score}/10] {article['title']}*\n"
         f"💡 {article.get('portfolio_impact', 'n/a')}"
         f"{kill}"
     )
@@ -94,7 +117,7 @@ def get_recent_news(min_score: int = 5, limit: int = 5) -> str:
         if score >= 9:
             # High importance — title + impact + action
             lines.append(
-                f"[{score}/10] {a['title']}\n"
+                f"*[{score}/10] {a['title']}*\n"
                 f"  _{a.get('portfolio_impact', '')}_\n"
                 f"  Consider: {a.get('suggested_action', '')}"
                 + (f"\n  Tickers: {tickers}" if tickers else "")
@@ -102,13 +125,13 @@ def get_recent_news(min_score: int = 5, limit: int = 5) -> str:
         elif score >= 7:
             # Medium — title + impact
             lines.append(
-                f"[{score}/10] {a['title']}\n"
+                f"*[{score}/10] {a['title']}*\n"
                 f"  _{a.get('portfolio_impact', '')}_"
                 + (f"\n  Tickers: {tickers}" if tickers else "")
             )
         else:
             # Score 5-6 — title only
-            lines.append(f"[{score}/10] {a['title']}")
+            lines.append(f"*[{score}/10]* {a['title']}")
     return "\n\n".join(lines)
 
 
@@ -128,7 +151,7 @@ def get_news_by_topic(topic: str) -> str:
 
     lines = [f"📰 *News: {topic}*", "━━━━━━━━━━━━━━━━━━━"]
     for a in matches[:5]:
-        parts = [f"[{a['score']}/10] {a['title']}"]
+        parts = [f"*[{a['score']}/10] {a['title']}*"]
         if a.get("summary"):
             parts.append(f"  _{a['summary'][:300]}_")
         if a.get("portfolio_impact"):
@@ -145,7 +168,7 @@ def get_recent_alerts() -> str:
         return "No high-score alerts in the last 48 hours."
     lines = [f"🚨 *Recent Alerts* (score ≥7, last 48h)", "━━━━━━━━━━━━━━━━━━━"]
     for a in articles:
-        lines.append(f"[{a['score']}/10] {a['title']}")
+        lines.append(f"*[{a['score']}/10] {a['title']}*")
     return "\n".join(lines)
 
 
