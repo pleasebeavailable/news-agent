@@ -242,8 +242,8 @@ def confirm_update() -> str:
         yaml.dump(theses, f, allow_unicode=True, default_flow_style=False, sort_keys=False)
 
     config_loader.reload_all()
-    _news_fetcher._keywords_cache = None
-    _news_scorer._prompt_template = None
+    _news_fetcher.clear_cache()
+    _news_scorer.clear_cache()
 
     _PENDING_UPDATE = None
     return f"✅ Portfolio updated. {applied} holding(s) changed. News pipeline reloaded."
@@ -299,8 +299,8 @@ def update_kill(text: str) -> str:
 
 def sync_portfolio() -> str:
     config_loader.reload_all()
-    _news_fetcher._keywords_cache = None
-    _news_scorer._prompt_template = None
+    _news_fetcher.clear_cache()
+    _news_scorer.clear_cache()
     return "✅ Configs reloaded. Portfolio, theses, keywords, and scoring prompt are now up to date."
 
 

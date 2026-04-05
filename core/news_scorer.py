@@ -11,6 +11,11 @@ PROMPT_PATH = Path(__file__).parent.parent / "prompts" / "news_scoring.txt"
 _prompt_template = None
 
 
+def clear_cache():
+    global _prompt_template
+    _prompt_template = None
+
+
 def _prompt() -> str:
     global _prompt_template
     if _prompt_template is None:

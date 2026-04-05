@@ -138,7 +138,7 @@ def get_portfolio_message() -> str:
         total_cost += cost_basis
         rows.append((q["ticker"], value, pnl, pnl_pct, q.get("theme", "")))
 
-    for ticker, value, pnl, pnl_pct, theme in sorted(rows, key=lambda x: -x[1]):
+    for ticker, value, pnl, pnl_pct, _ in sorted(rows, key=lambda x: -x[1]):
         weight = (value / total_value * 100) if total_value else 0
         sign = "+" if pnl >= 0 else ""
         lines.append(

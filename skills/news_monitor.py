@@ -46,25 +46,23 @@ def run_news_cycle():
         alerts_cfg = config_loader.alerts_config()
         immediate_threshold = alerts_cfg.get("news_score_immediate", 7)
 
-        alerted_tickers: set[str] = set()
+        recent_alerted = news_store.get_recent_alerted_titles(since_hours=12)
         for article in scored:
-            news_store.save_article(article)
+            article_id = news_store.save_article(article)
 
             if article["score"] >= immediate_threshold:
-                tickers = set(article.get("affected_tickers") or [])
-                if tickers and tickers & alerted_tickers:
-                    logger.info(
-                        "Skipping duplicate ticker alert for: %s (tickers: %s already alerted)",
-                        article["title"][:60],
-                        tickers & alerted_tickers,
-                    )
+                if news_fetcher.title_seen(article["title"], recent_alerted, threshold=0.70):
+                    logger.info("Skipping duplicate alert (title match): %s", article["title"][:60])
                     continue
-                alerted_tickers.update(tickers)
+                if not article_id or not news_store.try_mark_alerted(article_id):
+                    logger.info("Skipping already-alerted article: %s", article["title"][:60])
+                    continue
                 msg = _format_alert(article)
                 telegram_bot.send(msg)
-                logger.info(f"Alert sent for: {article['title'][:60]}")
+                recent_alerted.append(article["title"])
+                logger.info("Alert sent for: %s", article["title"][:60])
     except Exception as e:
-        logger.error(f"News cycle failed: {e}")
+        logger.error("News cycle failed: %s", e)
         try:
             telegram_bot.send(f"⚠️ News cycle failed: {e}")
         except Exception:
@@ -98,7 +96,7 @@ def _format_alert(article: dict) -> str:
     # Score 7-8 — short format
     kill = "\n⚠️ *Kill switch*" if article.get("kill_switch_triggered") else ""
     return (
-        f"📰 *[{score}/10] {article['title']}*\n"
+        f"📰 *[{score}/10] {safe_title}*\n"
         f"💡 {article.get('portfolio_impact', 'n/a')}"
         f"{kill}"
     )

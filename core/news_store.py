@@ -100,11 +100,6 @@ def url_exists(url: str) -> bool:
         return row is not None
 
 
-def mark_alerted(article_id: int):
-    with _conn() as conn:
-        conn.execute("UPDATE scored_news SET alerted=1 WHERE id=?", (article_id,))
-
-
 def try_mark_alerted(article_id: int) -> bool:
     """Atomically mark an article as alerted. Returns True if this call did the update (i.e. it wasn't already alerted)."""
     with _conn() as conn:

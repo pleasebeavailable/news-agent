@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, timezone
-from core import news_store, news_fetcher, news_scorer, llm_client, telegram_bot
+from core import news_store, news_fetcher, news_scorer, llm_client, telegram_bot, config_loader
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,6 @@ def _get_recent_geo_news(since_hours: int = 30, min_score: int = 5) -> list[dict
 
 def get_geo_brief() -> str:
     """On-demand: return a geopolitical brief from recent scored news."""
-    from core import config_loader
     articles = _get_recent_geo_news(since_hours=48, min_score=4)
     if not articles:
         logger.info("get_geo_brief: no geo articles found (48h, score>=4)")

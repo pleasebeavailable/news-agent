@@ -1,7 +1,7 @@
 """Skill 3: Earnings Calendar & Tracking."""
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 import yfinance as yf
 
 from core import config_loader

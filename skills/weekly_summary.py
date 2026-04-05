@@ -98,5 +98,5 @@ def send_weekly_summary():
         telegram_bot.send(summary)
         logger.info("Weekly summary sent.")
     except Exception as e:
-        logger.error(f"Weekly summary failed: {e}")
+        logger.error("Weekly summary failed: %s", e)
         telegram_bot.send(f"⚠️ Weekly summary failed: {e}")

@@ -6,10 +6,8 @@ import yfinance as yf
 
 # In-memory cache: ticker -> (data_dict, fetched_at)
 _price_cache: dict[str, tuple[dict, float]] = {}
-_info_cache: dict[str, tuple[dict, float]] = {}
 
 PRICE_TTL = 300    # 5 min
-INFO_TTL = 3600    # 1 hour
 
 logger = logging.getLogger(__name__)
 

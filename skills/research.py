@@ -60,8 +60,7 @@ def research_ticker(ticker: str) -> str:
     theses = config_loader.theses()
     thesis_data = theses.get(ticker, {})
     recent_news = _get_recent_ticker_news(ticker)
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    logger.info("research request — ticker=%s, news_items=%d, as_of=%s", ticker, len(recent_news), today)
+    logger.info("research request — ticker=%s, news_items=%d", ticker, len(recent_news))
 
     dated_news = _format_news_for_llm(recent_news[:5])
     prompt = (

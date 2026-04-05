@@ -23,6 +23,11 @@ _sources_cache = None
 _keywords_cache = None
 
 
+def clear_cache():
+    global _keywords_cache
+    _keywords_cache = None
+
+
 def _sources() -> dict:
     global _sources_cache
     if _sources_cache is None:
@@ -199,9 +204,6 @@ GEO_SOURCES = {"Al Jazeera English", "BBC World", "Guardian World"}
 
 _MAX_GEO_BYPASS = 15  # max articles per geo source that bypass keyword filter
 _MAX_ARTICLE_AGE_HOURS = 6  # skip articles older than this (when published_at is known)
-
-
-_MAX_ARTICLE_AGE_HOURS = 6
 
 
 def fetch_all(source_filter: set[str] | None = None) -> list[dict]:
