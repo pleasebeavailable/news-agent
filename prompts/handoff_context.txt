@@ -1,0 +1,169 @@
+## NemoClaw — Portfolio Manager Handoff
+
+### Project
+Personal portfolio intelligence Telegram bot. Python 3, SQLite, RSS feeds, yfinance, LLM-scored news.
+Working directory: ~/agents/openclaw-agent
+Stack: skills/*.py auto-discovered, core/ modules, prompts/*.txt templates, config/*.yaml data.
+
+---
+
+### What was built this session
+Full portfolio self-update system — skills/portfolio_manager.py + supporting changes.
+
+**No LLM used for portfolio updates** — deterministic regex parser only.
+
+Commands implemented:
+- `>>>` or `portfolio update <lines>` — parse structured lines, show preview
+- `yes` / `cancel` — confirm or abort
+- `thesis TICKER <text>` — write thesis directly to theses.yaml
+- `kill TICKER <text>` — write kill condition directly to theses.yaml
+- `portfolio sync` — hot-reload configs
+- `portfolio prompt` — send format template to Telegram
+- `skill prompt` — send new-skill meta-prompt to Telegram
+
+---
+
+### Current bug to fix
+
+**File**: skills/portfolio_manager.py — `_parse_update_text()`
+
+**Problem**: Three regex patterns exist:
+1. `_RE_REMOVE` — matches `-TICKER`
+2. `_RE_ADD` — matches `+TICKER SHARES @COST EXCHANGE THEME | ...`
+3. `_RE_UPDATE` — matches `TICKER SHARES @COST` (simple, no extra fields)
+
+When external Claude generates the update, it sends ALL positions (existing + new) in full format without `+`:
+```
+NVDA 105 @96.63 NASDAQ AI Infra | names: NVIDIA | thesis: ... | kill: ... | strategy: core_hold
+```
+
+`_RE_UPDATE` only handles `TICKER SHARES @COST` — it fails on lines with exchange/theme/pipes.
+`_RE_ADD` requires `+` prefix — so this line matches nothing and goes to errors.
+
+**Fix needed**: Lines without `+` or `-` that have the full format (`TICKER SHARES @COST EXCHANGE THEME | extras`) should be treated as upserts — update if ticker exists in watchlist, add if it doesn't. Essentially make `+` optional.
+
+Simplest fix: change `_RE_ADD` to also match without `+`, and in the parser logic check if ticker exists in the current watchlist to decide add vs update.
+
+Or: extend `_RE_UPDATE` to accept optional trailing exchange/theme/pipes, and apply whatever fields are present.
+
+---
+
+### Key files
+
+| File | Purpose |
+|------|---------|
+| `skills/portfolio_manager.py` | Main skill — parser, commands, YAML writer |
+| `prompts/portfolio_update_composer.txt` | Template sent to user via `portfolio prompt` |
+| `prompts/new_skill_meta_prompt.txt` | Meta-prompt for building new skills |
+| `config/portfolio.yaml` | Holdings: ticker, shares, cost, theme, names, exchange |
+| `config/theses.yaml` | thesis, kill, stance, strategy per ticker |
+| `core/config_loader.py` | portfolio_keyword_terms(), portfolio_scoring_context(), portfolio_geo_context() |
+
+---
+
+### Parser code (current state)
+
+```python
+_TICKER = r'([A-Z0-9][A-Z0-9._-]*)'
+_CURRENCY = r'(?:[$€£]|[A-Z]{2,3})?'
+_RE_REMOVE = re.compile(rf'^-{_TICKER}\s*$', re.IGNORECASE)
+_RE_UPDATE = re.compile(rf'^{_TICKER}\s+(\d+)\s+@{_CURRENCY}([0-9.]+)\s*$', re.IGNORECASE)
+_RE_ADD = re.compile(
+    rf'^\+{_TICKER}\s+(\d+)\s+@{_CURRENCY}([0-9.]+)\s+(\S+)\s+([^|]+?)(?:\|(.+))?$',
+    re.IGNORECASE,
+)
+
+def _parse_update_text(text: str) -> tuple[list[dict], list[str]]:
+    # If delimiter present, take only what comes after the last ---
+    if '---' in text:
+        text = text.split('---')[-1]
+
+    changes, errors = [], []
+    for raw in text.strip().splitlines():
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+
+        m = _RE_REMOVE.match(line)
+        if m:
+            changes.append({"ticker": m.group(1).upper(), "remove": True})
+            continue
+
+        m = _RE_ADD.match(line)
+        if m:
+            ticker = m.group(1).upper()
+            change = {
+                "ticker": ticker,
+                "remove": False,
+                "shares": int(m.group(2)),
+                "cost": float(m.group(3)),
+                "exchange": m.group(4).upper(),
+                "theme": m.group(5).strip(),
+            }
+            if m.group(6):
+                for part in m.group(6).split('|'):
+                    part = part.strip()
+                    if ':' not in part:
+                        continue
+                    key, val = part.split(':', 1)
+                    key, val = key.strip().lower(), val.strip()
+                    if key == 'names':
+                        change['names'] = [n.strip() for n in val.split(',') if n.strip()]
+                    elif key in ('thesis', 'kill', 'stance', 'strategy'):
+                        change[key] = val
+            changes.append(change)
+            continue
+
+        m = _RE_UPDATE.match(line)
+        if m:
+            changes.append({
+                "ticker": m.group(1).upper(),
+                "remove": False,
+                "shares": int(m.group(2)),
+                "cost": float(m.group(3)),
+            })
+            continue
+
+        errors.append(line)
+
+    return changes, errors
+```
+
+---
+
+### Update format (what user sends)
+
+Trigger: message starting with `>>>` routes to start_portfolio_update (prefix stripped by router).
+
+External Claude generates lines like this (all positions in same format, no `+` prefix):
+```
+NVDA 105 @96.63 NASDAQ AI Infra | names: NVIDIA | thesis: AI infra leader | kill: datacenter growth stalls | strategy: core_hold
+BABA 60 @215.34 NYSE China/EM | names: Alibaba | thesis: ... | kill: ... | strategy: reduce
+-2689.HK
+```
+
+The `+` prefix is NOT used by external Claude — it sends all positions uniformly.
+The fix should make `+` optional and treat lines based on whether ticker is already in the watchlist.
+
+---
+
+### Flow after fix
+1. User sends `portfolio prompt` → gets format template
+2. User opens external Claude, describes current state → Claude produces structured lines
+3. User sends `>>>\n<lines>` in Telegram
+4. Parser runs instantly (no LLM), shows preview
+5. User sends `yes` → YAML files updated, pipeline reloaded
+6. Optional: `thesis TICKER text` / `kill TICKER text` for any missing entries
+
+---
+
+### Coding rules for this project
+- No async/await — synchronous only
+- No new dependencies without asking
+- No docstrings or type annotations on existing functions
+- Telegram uses legacy Markdown (not MarkdownV2)
+- Private functions: _prefixed
+- Module logger: logger = logging.getLogger(__name__)
+- yaml.dump(..., allow_unicode=True, default_flow_style=False, sort_keys=False) for all YAML writes
+- Compile check: python3 -m py_compile skills/portfolio_manager.py
+- Tests: pytest tests/ -v
